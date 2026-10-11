@@ -433,6 +433,162 @@
             gap: 15px;
         }
 
+        /* Phase 2 UI Components */
+        .waveform-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 200px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            display: block;
+        }
+
+        .chord-display {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .chord-timeline {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .chord-block {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-align: center;
+            min-width: 80px;
+            transition: all 0.2s ease;
+        }
+
+        .chord-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .chord-arrow {
+            font-size: 1.5em;
+            color: #667eea;
+        }
+
+        .accompaniment-section {
+            display: none;
+        }
+
+        .accompaniment-section.show {
+            display: block;
+        }
+
+        .tempo-key-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tempo-key-group {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .tempo-key-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .tempo-key-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.2s ease;
+        }
+
+        .tempo-key-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .key-select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .key-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .accompaniment-stems-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .accompaniment-stems-grid.show {
+            display: grid;
+        }
+
+        .accompaniment-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .accompaniment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .accompaniment-icon {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+        }
+
+        .accompaniment-name {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .accompaniment-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             header {
@@ -480,15 +636,23 @@
                 </div>
                 <div class="step" id="step-2">
                     <div class="step-number">2</div>
-                    <div class="step-label">Analyze</div>
+                    <div class="step-label">Separate</div>
                 </div>
                 <div class="step" id="step-3">
                     <div class="step-number">3</div>
-                    <div class="step-label">Separate</div>
+                    <div class="step-label">Melody</div>
                 </div>
                 <div class="step" id="step-4">
                     <div class="step-number">4</div>
-                    <div class="step-label">Export</div>
+                    <div class="step-label">Chords</div>
+                </div>
+                <div class="step" id="step-5">
+                    <div class="step-number">5</div>
+                    <div class="step-label">Accomp.</div>
+                </div>
+                <div class="step" id="step-6">
+                    <div class="step-number">6</div>
+                    <div class="step-label">Download</div>
                 </div>
             </div>
 
@@ -555,6 +719,225 @@
                     No stems available yet. Upload and process audio first.
                 </div>
             </div>
+
+            <!-- Phase 2: Melody Extraction -->
+            <div class="section" id="melody-section" style="display: none;">
+                <h2>5. Extract Melody</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Extract the fundamental frequency (F0) contour from your vocals to detect the melody line.
+                </p>
+                <button id="extract-melody-btn" disabled>
+                    🎼 Extract Melody
+                </button>
+                <div class="status-box" id="melody-status"></div>
+                <div class="waveform-container" id="f0-waveform-container" style="display: none;">
+                    <div style="font-weight: 600; margin-bottom: 12px; color: #333;">Extracted F0 Contour</div>
+                    <canvas id="f0-waveform" class="waveform-canvas"></canvas>
+                    <div class="audio-info" style="display: grid; margin-top: 15px;">
+                        <div class="info-item">
+                            <div class="info-label">Mean F0 (Hz)</div>
+                            <div class="info-value" id="f0-mean">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Voicing Ratio (%)</div>
+                            <div class="info-value" id="voicing-ratio">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Chord Detection -->
+            <div class="section" id="chord-section" style="display: none;">
+                <h2>6. Detect Chords</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Automatically detect the chord progression from your vocals.
+                </p>
+                <button id="detect-chords-btn" disabled>
+                    🎸 Detect Chord Progression
+                </button>
+                <div class="status-box" id="chord-status"></div>
+                <div class="chord-display" id="chord-display" style="display: none;">
+                    <div style="font-weight: 600; margin-bottom: 12px; color: #333;">Detected Chord Progression</div>
+                    <div class="chord-timeline" id="chord-timeline"></div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Accompaniment Generation -->
+            <div class="section accompaniment-section" id="accompaniment-section">
+                <h2>7. Generate Accompaniment</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Generate bass and drum accompaniment based on detected chords.
+                </p>
+
+                <div class="tempo-key-controls">
+                    <div class="tempo-key-group">
+                        <label class="tempo-key-label">Tempo (BPM)</label>
+                        <input type="number" id="tempo-bpm" class="tempo-key-input" value="120" min="60" max="180" step="1">
+                    </div>
+                    <div class="tempo-key-group">
+                        <label class="tempo-key-label">Key</label>
+                        <select id="key-select" class="key-select">
+                            <option value="C">C (No sharps/flats)</option>
+                            <option value="G">G (1 sharp - F#)</option>
+                            <option value="D">D (2 sharps)</option>
+                            <option value="A">A (3 sharps)</option>
+                            <option value="E">E (4 sharps)</option>
+                            <option value="B">B (5 sharps)</option>
+                            <option value="F#">F# (6 sharps)</option>
+                            <option value="F">F (1 flat - Bb)</option>
+                            <option value="Bb">Bb (2 flats)</option>
+                            <option value="Eb">Eb (3 flats)</option>
+                            <option value="Ab">Ab (4 flats)</option>
+                            <option value="Db">Db (5 flats)</option>
+                            <option value="Gb">Gb (6 flats)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="generate-accompaniment-btn" disabled>
+                    🎹 Generate Accompaniment
+                </button>
+                <div class="status-box" id="accompaniment-status"></div>
+
+                <!-- Accompaniment Character Controls -->
+                <div id="accompaniment-character-controls" style="margin-top: 30px; display: none;">
+                    <h3 style="margin-bottom: 20px; color: #333;">Character Effects</h3>
+
+                    <!-- Bass Character -->
+                    <div class="character-stem">
+                        <div class="character-stem-title">🎹 Bass</div>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Bass (EQ)</strong>
+                                    <span class="control-value" data-param="bass-eq-low">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('bass', 'eq_low', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-eq-low', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Mids (EQ)</strong>
+                                    <span class="control-value" data-param="bass-eq-mid">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('bass', 'eq_mid', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-eq-mid', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Treble (EQ)</strong>
+                                    <span class="control-value" data-param="bass-eq-high">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('bass', 'eq_high', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-eq-high', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Compression</strong>
+                                    <span class="control-value" data-param="bass-compression">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="1" value="0" step="0.1"
+                                       onchange="updateAccompanimentControl('bass', 'compression', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-compression', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Saturation</strong>
+                                    <span class="control-value" data-param="bass-saturation">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="1" value="0" step="0.1"
+                                       onchange="updateAccompanimentControl('bass', 'saturation', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-saturation', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Reverb</strong>
+                                    <span class="control-value" data-param="bass-reverb">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="0.5" value="0" step="0.05"
+                                       onchange="updateAccompanimentControl('bass', 'reverb', this.value)"
+                                       oninput="updateAccompanimentDisplay('bass-reverb', this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drums Character -->
+                    <div class="character-stem">
+                        <div class="character-stem-title">🥁 Drums</div>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Bass (EQ)</strong>
+                                    <span class="control-value" data-param="drums-eq-low">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('drums', 'eq_low', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-eq-low', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Mids (EQ)</strong>
+                                    <span class="control-value" data-param="drums-eq-mid">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('drums', 'eq_mid', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-eq-mid', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Treble (EQ)</strong>
+                                    <span class="control-value" data-param="drums-eq-high">0</span> dB
+                                </div>
+                                <input type="range" min="-12" max="12" value="0" step="1"
+                                       onchange="updateAccompanimentControl('drums', 'eq_high', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-eq-high', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Compression</strong>
+                                    <span class="control-value" data-param="drums-compression">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="1" value="0" step="0.1"
+                                       onchange="updateAccompanimentControl('drums', 'compression', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-compression', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Saturation</strong>
+                                    <span class="control-value" data-param="drums-saturation">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="1" value="0" step="0.1"
+                                       onchange="updateAccompanimentControl('drums', 'saturation', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-saturation', this.value)">
+                            </div>
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <strong>Reverb</strong>
+                                    <span class="control-value" data-param="drums-reverb">0.0</span>
+                                </div>
+                                <input type="range" min="0" max="0.5" value="0" step="0.05"
+                                       onchange="updateAccompanimentControl('drums', 'reverb', this.value)"
+                                       oninput="updateAccompanimentDisplay('drums-reverb', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Download Accompaniment -->
+            <div class="section" id="download-accompaniment-section" style="display: none;">
+                <h2>8. Download Accompaniment</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Download your generated accompaniment stems and final mix.
+                </p>
+                <div class="accompaniment-stems-grid" id="accompaniment-stems-grid"></div>
+                <div id="no-accompaniment" style="text-align: center; color: #999; padding: 40px;">
+                    No accompaniment available yet. Generate accompaniment first.
+                </div>
+            </div>
         </main>
     </div>
 
@@ -587,7 +970,9 @@
             document.getElementById('step-1'),
             document.getElementById('step-2'),
             document.getElementById('step-3'),
-            document.getElementById('step-4')
+            document.getElementById('step-4'),
+            document.getElementById('step-5'),
+            document.getElementById('step-6')
         ];
 
         // Helpers
@@ -777,6 +1162,9 @@
 
             // Build character control panel
             buildCharacterControls(Object.keys(stems));
+
+            // Enable Phase 2 workflow
+            enablePhase2Workflow();
         }
 
         // Build character control panels
@@ -955,10 +1343,292 @@
             document.body.removeChild(a);
         }
 
+        // Phase 2 State
+        const phase2State = {
+            f0Contour: null,
+            confidence: null,
+            times: null,
+            chords: [],
+            accompaniment: null,
+            characterControls: {
+                bass: { eq_low: 0, eq_mid: 0, eq_high: 0, compression: 0, saturation: 0, reverb: 0 },
+                drums: { eq_low: 0, eq_mid: 0, eq_high: 0, compression: 0, saturation: 0, reverb: 0 }
+            }
+        };
+
+        // Enable Phase 2 sections after separation
+        function enablePhase2Workflow() {
+            document.getElementById('melody-section').style.display = 'block';
+            document.getElementById('chord-section').style.display = 'block';
+            document.getElementById('accompaniment-section').classList.add('show');
+            document.getElementById('extract-melody-btn').disabled = false;
+            updateStep(2, 'active');
+        }
+
+        // Extract Melody
+        document.getElementById('extract-melody-btn').addEventListener('click', async () => {
+            if (!state.sessionId) {
+                showStatus(document.getElementById('melody-status'), 'No session found', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('extract-melody-btn');
+            btn.disabled = true;
+            showStatus(document.getElementById('melody-status'), 'Extracting melody...', 'loading');
+            updateStep(2, 'complete');
+            updateStep(3, 'active');
+
+            try {
+                const response = await fetch('/api/extract-melody', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: state.sessionId, use_vocals_stem: true })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    phase2State.f0Contour = result.f0_mean;
+                    showStatus(document.getElementById('melody-status'), `✓ ${result.message}`, 'success');
+
+                    // Display F0 waveform
+                    displayF0Waveform(result.f0_mean, result.voicing_ratio);
+
+                    // Enable chord detection
+                    document.getElementById('detect-chords-btn').disabled = false;
+                } else {
+                    showStatus(document.getElementById('melody-status'), `✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(document.getElementById('melody-status'), `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Display F0 Waveform
+        function displayF0Waveform(f0Mean, voicingRatio) {
+            const container = document.getElementById('f0-waveform-container');
+            const canvas = document.getElementById('f0-waveform');
+            container.style.display = 'block';
+
+            // Update stats
+            document.getElementById('f0-mean').textContent = f0Mean.toFixed(1);
+            document.getElementById('voicing-ratio').textContent = (voicingRatio * 100).toFixed(1);
+
+            // Draw simple waveform representation
+            const ctx = canvas.getContext('2d');
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            // Draw oscillating line representing F0
+            const centerY = height / 2;
+            const frequency = 5;
+            const amplitude = (height / 4) * voicingRatio;
+
+            for (let x = 0; x < width; x++) {
+                const y = centerY + amplitude * Math.sin((x / width) * frequency * Math.PI * 2);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // Detect Chords
+        document.getElementById('detect-chords-btn').addEventListener('click', async () => {
+            if (!state.sessionId) {
+                showStatus(document.getElementById('chord-status'), 'No session found', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('detect-chords-btn');
+            btn.disabled = true;
+            showStatus(document.getElementById('chord-status'), 'Detecting chords...', 'loading');
+            updateStep(3, 'complete');
+            updateStep(4, 'active');
+
+            try {
+                const response = await fetch('/api/detect-chords', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: state.sessionId, use_vocals_stem: true })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    phase2State.chords = result.chords;
+                    showStatus(document.getElementById('chord-status'), `✓ ${result.message}`, 'success');
+
+                    // Display chord progression
+                    displayChordProgression(result.chords);
+
+                    // Enable accompaniment generation
+                    document.getElementById('generate-accompaniment-btn').disabled = false;
+                } else {
+                    showStatus(document.getElementById('chord-status'), `✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(document.getElementById('chord-status'), `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Display Chord Progression
+        function displayChordProgression(chords) {
+            const display = document.getElementById('chord-display');
+            const timeline = document.getElementById('chord-timeline');
+            display.style.display = 'block';
+            timeline.innerHTML = '';
+
+            chords.forEach((chord, index) => {
+                const block = document.createElement('div');
+                block.className = 'chord-block';
+                block.innerHTML = `${chord.root}${chord.quality === 'major' ? '' : 'm'}<br><small>${chord.start_time.toFixed(1)}s</small>`;
+                timeline.appendChild(block);
+
+                if (index < chords.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'chord-arrow';
+                    arrow.innerHTML = '→';
+                    timeline.appendChild(arrow);
+                }
+            });
+        }
+
+        // Update accompaniment control display
+        function updateAccompanimentDisplay(paramId, value) {
+            const display = document.querySelector(`[data-param="${paramId}"]`);
+            if (display) {
+                if (paramId.includes('eq')) {
+                    display.textContent = value;
+                } else {
+                    display.textContent = parseFloat(value).toFixed(1);
+                }
+            }
+        }
+
+        // Update accompaniment control state
+        function updateAccompanimentControl(stem, param, value) {
+            phase2State.characterControls[stem][param] = parseFloat(value);
+        }
+
+        // Generate Accompaniment
+        document.getElementById('generate-accompaniment-btn').addEventListener('click', async () => {
+            if (!state.sessionId) {
+                showStatus(document.getElementById('accompaniment-status'), 'No session found', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generate-accompaniment-btn');
+            btn.disabled = true;
+            showStatus(document.getElementById('accompaniment-status'), 'Generating accompaniment...', 'loading');
+            updateStep(4, 'complete');
+            updateStep(5, 'active');
+
+            const tempo = parseInt(document.getElementById('tempo-bpm').value);
+            const key = document.getElementById('key-select').value;
+
+            try {
+                const response = await fetch('/api/generate-accompaniment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: state.sessionId,
+                        tempo_bpm: tempo,
+                        key: key,
+                        character_config: phase2State.characterControls
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    phase2State.accompaniment = result.accompaniment_stems;
+                    showStatus(document.getElementById('accompaniment-status'), `✓ ${result.message}`, 'success');
+
+                    // Show character controls
+                    document.getElementById('accompaniment-character-controls').style.display = 'block';
+
+                    // Display accompaniment stems
+                    displayAccompanimentStems(result.accompaniment_stems, result.metadata);
+
+                    // Show download section
+                    document.getElementById('download-accompaniment-section').style.display = 'block';
+                    updateStep(5, 'complete');
+                    updateStep(6, 'active');
+                } else {
+                    showStatus(document.getElementById('accompaniment-status'), `✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(document.getElementById('accompaniment-status'), `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Display Accompaniment Stems
+        function displayAccompanimentStems(stems, metadata) {
+            const grid = document.getElementById('accompaniment-stems-grid');
+            const noAccomp = document.getElementById('no-accompaniment');
+            grid.innerHTML = '';
+            noAccomp.style.display = 'none';
+
+            const stemInfo = {
+                bass: { icon: '🎹', name: 'Bass', desc: `${metadata.num_bass_notes} notes` },
+                drums: { icon: '🥁', name: 'Drums', desc: `${metadata.num_drum_events} events` },
+                mix: { icon: '🎵', name: 'Full Mix', desc: `Vocals + accompaniment` }
+            };
+
+            Object.entries(stems).forEach(([stemName, stemPath]) => {
+                const info = stemInfo[stemName];
+                const card = document.createElement('div');
+                card.className = 'accompaniment-card';
+                card.innerHTML = `
+                    <div class="accompaniment-icon">${info.icon}</div>
+                    <div class="accompaniment-name">${info.name}</div>
+                    <div class="accompaniment-info">${info.desc}</div>
+                    <button class="secondary" onclick="downloadAccompanimentStem('${stemName}')">
+                        ⬇️ Download
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+
+            grid.classList.add('show');
+        }
+
+        // Download accompaniment stem
+        function downloadAccompanimentStem(stemName) {
+            if (!state.sessionId) return;
+            const url = `/api/download/accompaniment/${stemName}/${state.sessionId}`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.sessionId}_accompaniment_${stemName}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
         // Health check
         fetch('/api/health')
             .then(r => r.json())
-            .then(data => console.log('✓ SongShapes ready:', data))
+            .then(data => {
+                console.log('✓ SongShapes ready:', data);
+                if (!data.phase2_available) {
+                    console.warn('⚠️ Phase 2 features not available');
+                }
+            })
             .catch(e => console.error('Server not responding:', e));
     </script>
 </body>
