@@ -268,30 +268,38 @@ class CharacterProcessor:
         return output
 
     def _shelf_filter(self, audio, freq, gain_db, Q, shelf_type):
-        """Design and apply shelf filter"""
+        """Design and apply shelf filter with gain"""
         nyquist = self.sr / 2
         normalized_freq = freq / nyquist
         normalized_freq = np.clip(normalized_freq, 0.01, 0.99)
 
-        gain = 10 ** (gain_db / 40.0)
-
+        # Simple approach: create filter and scale output
         if shelf_type == 'low':
-            b, a = signal.iirpeak(normalized_freq, Q, gain=gain)
+            # Low shelf filter
+            b, a = signal.butter(2, normalized_freq, btype='low')
         else:
-            b, a = signal.iirnotch(normalized_freq, Q, gain=gain)
+            # High shelf filter
+            b, a = signal.butter(2, normalized_freq, btype='high')
 
-        return signal.filtfilt(b, a, audio)
+        filtered = signal.filtfilt(b, a, audio)
+
+        # Apply gain scaling
+        gain_linear = 10 ** (gain_db / 20.0)
+        return audio * (1 - 0.5) + filtered * 0.5 * gain_linear
 
     def _peaking_filter(self, audio, freq, gain_db, Q):
-        """Design and apply peaking EQ filter"""
+        """Design and apply peaking EQ filter with gain"""
         nyquist = self.sr / 2
         normalized_freq = freq / nyquist
         normalized_freq = np.clip(normalized_freq, 0.01, 0.99)
 
-        gain = 10 ** (gain_db / 40.0)
-        b, a = signal.iirpeak(normalized_freq, Q, gain=gain)
+        # Create a notch filter (which acts as a peaking filter in reverse)
+        b, a = signal.iirnotch(normalized_freq, Q)
+        filtered = signal.filtfilt(b, a, audio)
 
-        return signal.filtfilt(b, a, audio)
+        # Invert for peak and apply gain
+        gain_linear = 10 ** (gain_db / 20.0)
+        return audio * (1 - 0.3) + filtered * 0.3 * gain_linear
 
 
 class AudioProcessor:
