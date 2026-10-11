@@ -344,6 +344,95 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Character Controls */
+        .character-stem {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .character-stem-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            color: #666;
+        }
+
+        .control-label strong {
+            color: #333;
+        }
+
+        .control-value {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #f0f2ff, #e8eaf6);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             header {
@@ -440,9 +529,27 @@
                 <div class="status-box" id="process-status"></div>
             </div>
 
+            <!-- Character Control Section -->
+            <div class="section" id="character-section" style="display: none;">
+                <h2>3. Customize Character</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Adjust the sonic character for each stem. Use the sliders to dial in your perfect sound.
+                </p>
+                <div id="character-controls"></div>
+                <div class="button-group">
+                    <button id="regenerate-btn" onclick="regenerateWithCharacter()">
+                        ⚙️ Regenerate with New Character
+                    </button>
+                    <button id="reset-char-btn" class="secondary" onclick="resetCharacterControls()">
+                        ↻ Reset to Defaults
+                    </button>
+                </div>
+                <div class="status-box" id="regen-status"></div>
+            </div>
+
             <!-- Stems Section -->
             <div class="section">
-                <h2>3. Download Stems</h2>
+                <h2>4. Download Stems</h2>
                 <div class="stems-grid" id="stems-grid"></div>
                 <div id="no-stems" style="text-align: center; color: #999; padding: 40px;">
                     No stems available yet. Upload and process audio first.
@@ -633,7 +740,13 @@
             }
         });
 
-        // Display stems
+        // Character control state
+        const characterState = {
+            controls: {},
+            stems: ['vocals', 'percussion', 'bass_pads']
+        };
+
+        // Display stems and character controls
         function displayStems(stems) {
             stemsGrid.innerHTML = '';
             noStems.style.display = 'none';
@@ -661,6 +774,174 @@
             });
 
             stemsGrid.classList.add('show');
+
+            // Build character control panel
+            buildCharacterControls(Object.keys(stems));
+        }
+
+        // Build character control panels
+        function buildCharacterControls(stemNames) {
+            const controlsContainer = document.getElementById('character-controls');
+            controlsContainer.innerHTML = '';
+
+            // Only show controls for main stems (not harmonic/percussive/master)
+            const mainStems = stemNames.filter(s =>
+                ['vocals', 'percussion', 'bass_pads'].includes(s)
+            );
+
+            mainStems.forEach(stemName => {
+                // Initialize state
+                if (!characterState.controls[stemName]) {
+                    characterState.controls[stemName] = {
+                        eq_low: 0,
+                        eq_mid: 0,
+                        eq_high: 0,
+                        compression: 0,
+                        saturation: 0,
+                        reverb: 0
+                    };
+                }
+
+                const stemIcons = { 'vocals': '🎤', 'percussion': '🥁', 'bass_pads': '🎹' };
+                const stemLabel = stemName.replace('_', ' ');
+
+                const stemPanel = document.createElement('div');
+                stemPanel.className = 'character-stem';
+                stemPanel.innerHTML = `
+                    <div class="character-stem-title">${stemIcons[stemName] || '🎵'} ${stemLabel.toUpperCase()}</div>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Bass (EQ)</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="eq_low">0</span> dB
+                            </div>
+                            <input type="range" min="-12" max="12" value="0" step="1"
+                                   onchange="updateCharacterControl('${stemName}', 'eq_low', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'eq_low', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Mids (EQ)</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="eq_mid">0</span> dB
+                            </div>
+                            <input type="range" min="-12" max="12" value="0" step="1"
+                                   onchange="updateCharacterControl('${stemName}', 'eq_mid', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'eq_mid', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Treble (EQ)</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="eq_high">0</span> dB
+                            </div>
+                            <input type="range" min="-12" max="12" value="0" step="1"
+                                   onchange="updateCharacterControl('${stemName}', 'eq_high', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'eq_high', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Compression</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="compression">0</span>
+                            </div>
+                            <input type="range" min="0" max="1" value="0" step="0.1"
+                                   onchange="updateCharacterControl('${stemName}', 'compression', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'compression', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Saturation</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="saturation">0</span>
+                            </div>
+                            <input type="range" min="0" max="1" value="0" step="0.1"
+                                   onchange="updateCharacterControl('${stemName}', 'saturation', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'saturation', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">
+                                <strong>Reverb</strong>
+                                <span class="control-value" data-stem="${stemName}" data-param="reverb">0</span>
+                            </div>
+                            <input type="range" min="0" max="0.5" value="0" step="0.05"
+                                   onchange="updateCharacterControl('${stemName}', 'reverb', this.value)"
+                                   oninput="updateCharacterDisplay('${stemName}', 'reverb', this.value)">
+                        </div>
+                    </div>
+                `;
+                controlsContainer.appendChild(stemPanel);
+            });
+
+            // Show character section and update workflow
+            document.getElementById('character-section').style.display = 'block';
+            updateStep(2, 'active');
+        }
+
+        // Update character display value
+        function updateCharacterDisplay(stemName, param, value) {
+            const display = document.querySelector(`[data-stem="${stemName}"][data-param="${param}"]`);
+            if (display) {
+                display.textContent = value;
+            }
+        }
+
+        // Update character control state
+        function updateCharacterControl(stemName, param, value) {
+            characterState.controls[stemName][param] = parseFloat(value);
+        }
+
+        // Reset character controls
+        function resetCharacterControls() {
+            Object.keys(characterState.controls).forEach(stemName => {
+                Object.keys(characterState.controls[stemName]).forEach(param => {
+                    characterState.controls[stemName][param] = 0;
+                });
+            });
+
+            // Reset all sliders
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                slider.value = 0;
+                const stemName = slider.parentElement.getAttribute('data-stem') ||
+                                 slider.closest('.character-stem').innerText.split('\n')[0].toLowerCase().replace(' ', '_');
+                const param = slider.parentElement.getAttribute('data-param');
+            });
+
+            location.reload(); // Simpler: just reload to reset display
+        }
+
+        // Regenerate with character settings
+        async function regenerateWithCharacter() {
+            if (!state.sessionId) {
+                showStatus(document.getElementById('regen-status'), 'No session found', 'error');
+                return;
+            }
+
+            const regenBtn = document.getElementById('regenerate-btn');
+            regenBtn.disabled = true;
+            showStatus(document.getElementById('regen-status'), 'Regenerating with character settings...', 'loading');
+
+            try {
+                const response = await fetch('/api/regenerate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: state.sessionId,
+                        character_config: characterState.controls
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showStatus(document.getElementById('regen-status'), `✓ ${result.message}`, 'success');
+                    updateStep(3, 'active');
+                    // Refresh stems display with new stems
+                    displayStems(result.stems);
+                } else {
+                    showStatus(document.getElementById('regen-status'), `✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(document.getElementById('regen-status'), `Error: ${error.message}`, 'error');
+            } finally {
+                regenBtn.disabled = false;
+            }
         }
 
         function downloadStem(stemName) {

@@ -249,6 +249,70 @@ def download_stem(stem_name, session_id):
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@app.route('/api/regenerate', methods=['POST'])
+def regenerate_stems():
+    """
+    Regenerate stems with character effects applied
+
+    Request:
+        {
+            'session_id': str,
+            'character_config': {
+                'vocals': {'eq_low': float, 'eq_mid': float, 'eq_high': float, 'compression': float, 'saturation': float, 'reverb': float},
+                'percussion': {...},
+                'bass_pads': {...}
+            }
+        }
+
+    Returns:
+        {
+            'status': 'success' | 'error',
+            'stems': { 'vocals': path, 'percussion': path, ... },
+            'message': str
+        }
+    """
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        character_config = data.get('character_config')
+
+        if not session_id or session_id not in PROCESSOR_SESSIONS:
+            return jsonify({'status': 'error', 'message': 'Invalid session'}), 400
+
+        sess = get_session_processor(session_id)
+
+        if not sess['audio_path']:
+            return jsonify({'status': 'error', 'message': 'No audio loaded'}), 400
+
+        if not sess['stems']:
+            return jsonify({'status': 'error', 'message': 'Audio not yet separated. Separate stems first.'}), 400
+
+        # Convert character_config from frontend format to processor format
+        # Frontend sends: { stem_name: { 'eq_low': val, ... } }
+        # Processor expects: { stem_name: { 'eq_low': val, ... } }
+        # They match! No conversion needed.
+
+        # Re-run processing pipeline with new character config
+        processor = sess['processor']
+        result = processor.process_full_pipeline(
+            sess['audio_path'],
+            sess['output_dir'],
+            character_config=character_config
+        )
+
+        if result['status'] == 'success':
+            sess['stems'] = result['stems']
+            sess['message'] = result['message']
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Regeneration failed: {str(e)}'
+        }), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health():
     """Health check endpoint"""

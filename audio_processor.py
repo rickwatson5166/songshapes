@@ -357,7 +357,7 @@ class AudioProcessor:
                 'bass_pads': {'eq_low': 1, 'eq_mid': -1, 'eq_high': 0, 'compression': 0.3}
             }
 
-        # Apply character effects
+        # Apply character effects to vocals
         vocals_processed = self.character.apply_eq(
             vocals,
             low_gain=character_config.get('vocals', {}).get('eq_low', 0),
@@ -365,6 +365,27 @@ class AudioProcessor:
             high_gain=character_config.get('vocals', {}).get('eq_high', 0)
         )
 
+        if character_config.get('vocals', {}).get('compression', 0) > 0:
+            vocals_processed = self.character.apply_compression(
+                vocals_processed,
+                threshold=-20,
+                ratio=4.0 * character_config['vocals'].get('compression', 0)
+            )
+
+        if character_config.get('vocals', {}).get('saturation', 0) > 0:
+            vocals_processed = self.character.apply_saturation(
+                vocals_processed,
+                drive=character_config['vocals'].get('saturation', 0)
+            )
+
+        if character_config.get('vocals', {}).get('reverb', 0) > 0:
+            vocals_processed = self.character.apply_reverb(
+                vocals_processed,
+                room_size=0.5,
+                wet_level=character_config['vocals'].get('reverb', 0)
+            )
+
+        # Apply character effects to percussion
         percussion_processed = self.character.apply_eq(
             percussive,
             low_gain=character_config.get('percussion', {}).get('eq_low', 0),
@@ -372,12 +393,53 @@ class AudioProcessor:
             high_gain=character_config.get('percussion', {}).get('eq_high', 0)
         )
 
+        if character_config.get('percussion', {}).get('compression', 0) > 0:
+            percussion_processed = self.character.apply_compression(
+                percussion_processed,
+                threshold=-20,
+                ratio=4.0 * character_config['percussion'].get('compression', 0)
+            )
+
+        if character_config.get('percussion', {}).get('saturation', 0) > 0:
+            percussion_processed = self.character.apply_saturation(
+                percussion_processed,
+                drive=character_config['percussion'].get('saturation', 0)
+            )
+
+        if character_config.get('percussion', {}).get('reverb', 0) > 0:
+            percussion_processed = self.character.apply_reverb(
+                percussion_processed,
+                room_size=0.5,
+                wet_level=character_config['percussion'].get('reverb', 0)
+            )
+
+        # Apply character effects to bass/pads
         bass_pads_processed = self.character.apply_eq(
             bass_pads,
             low_gain=character_config.get('bass_pads', {}).get('eq_low', 0),
             mid_gain=character_config.get('bass_pads', {}).get('eq_mid', 0),
             high_gain=character_config.get('bass_pads', {}).get('eq_high', 0)
         )
+
+        if character_config.get('bass_pads', {}).get('compression', 0) > 0:
+            bass_pads_processed = self.character.apply_compression(
+                bass_pads_processed,
+                threshold=-20,
+                ratio=4.0 * character_config['bass_pads'].get('compression', 0)
+            )
+
+        if character_config.get('bass_pads', {}).get('saturation', 0) > 0:
+            bass_pads_processed = self.character.apply_saturation(
+                bass_pads_processed,
+                drive=character_config['bass_pads'].get('saturation', 0)
+            )
+
+        if character_config.get('bass_pads', {}).get('reverb', 0) > 0:
+            bass_pads_processed = self.character.apply_reverb(
+                bass_pads_processed,
+                room_size=0.5,
+                wet_level=character_config['bass_pads'].get('reverb', 0)
+            )
 
         # Save stems
         stems = {
