@@ -27,3 +27,6 @@ Thumbs.db
 *.mp3
 *.flac
 songshapes_*/
+
+# Claude remote tokens (OAuth)
+.claude/remote/
