@@ -31,16 +31,38 @@ except ImportError:
     PHASE2_AVAILABLE = False
     print("⚠️  Warning: Phase 2 modules not available. Some features will be disabled.")
 
+# Phase 3A imports (Async processing)
+PHASE3A_AVAILABLE = False
+try:
+    from flask_socketio import SocketIO, emit
+    from celery import Celery
+    from celery.result import AsyncResult
+    from celery_config import celery
+    import celery_tasks
+    PHASE3A_AVAILABLE = True
+except ImportError:
+    PHASE3A_AVAILABLE = False
+    print("⚠️  Warning: Phase 3A modules (Celery, Redis, SocketIO) not available. Async processing disabled.")
+
 app = Flask(__name__, template_folder='templates')
 app.secret_key = 'songshapes_secret_key_2026'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
+# Initialize SocketIO for async progress updates
+socketio = None
+if PHASE3A_AVAILABLE:
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
 # Allowed file types
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'flac', 'ogg', 'm4a'}
 
-# Global processor sessions
+# Global processor sessions (shared with Celery tasks)
 PROCESSOR_SESSIONS = {}
+
+# Make sessions available to celery_tasks module
+if PHASE3A_AVAILABLE:
+    celery_tasks.sessions = PROCESSOR_SESSIONS
 
 
 def allowed_file(filename):
@@ -707,6 +729,222 @@ def server_error(e):
 
 
 # ============================================================================
+# Phase 3A: Async Task Processing Endpoints
+# ============================================================================
+
+if PHASE3A_AVAILABLE:
+    # WebSocket event handlers
+    @socketio.on('connect')
+    def handle_connect():
+        """Client WebSocket connected"""
+        print(f"[WebSocket] Client connected: {request.sid}")
+        emit('connection_response', {
+            'data': 'Connected to SongShapes async server',
+            'sid': request.sid
+        })
+
+    @socketio.on('subscribe_task')
+    def handle_subscribe(data):
+        """Subscribe to task progress updates"""
+        task_id = data.get('task_id')
+        if not task_id:
+            emit('error', {'message': 'No task_id provided'})
+            return
+
+        # Send current task status
+        result = AsyncResult(task_id, app=celery)
+
+        if result.state == 'PENDING':
+            state_data = {
+                'state': 'PENDING',
+                'current': 0,
+                'total': 100,
+                'percentage': 0,
+                'message': 'Task queued...',
+                'task_id': task_id
+            }
+        elif result.state == 'PROGRESS':
+            state_data = result.info.copy()
+            state_data['state'] = 'PROGRESS'
+            state_data['task_id'] = task_id
+        elif result.state == 'SUCCESS':
+            state_data = {
+                'state': 'SUCCESS',
+                'current': 100,
+                'total': 100,
+                'percentage': 100,
+                'message': 'Complete!',
+                'result': result.result,
+                'task_id': task_id
+            }
+        else:
+            state_data = {
+                'state': result.state,
+                'message': str(result.info),
+                'task_id': task_id
+            }
+
+        emit('task_status', state_data)
+
+    @socketio.on('get_task_status')
+    def handle_get_status(data):
+        """Poll task status"""
+        task_id = data.get('task_id')
+        if not task_id:
+            emit('error', {'message': 'No task_id provided'})
+            return
+
+        result = AsyncResult(task_id, app=celery)
+
+        if result.state == 'PENDING':
+            state_data = {'state': 'PENDING', 'current': 0, 'total': 100, 'percentage': 0, 'message': 'Queued...', 'task_id': task_id}
+        elif result.state == 'PROGRESS':
+            state_data = result.info.copy()
+            state_data['state'] = 'PROGRESS'
+            state_data['task_id'] = task_id
+        elif result.state == 'SUCCESS':
+            state_data = {'state': 'SUCCESS', 'current': 100, 'total': 100, 'percentage': 100, 'result': result.result, 'task_id': task_id}
+        else:
+            state_data = {'state': result.state, 'message': str(result.info), 'task_id': task_id}
+
+        emit('task_status', state_data)
+
+    # Async API Endpoints
+    @app.route('/api/extract-melody-async', methods=['POST'])
+    def extract_melody_async():
+        """
+        Async version: Extract melody from vocals
+
+        Returns task_id for polling/WebSocket subscription
+        """
+        try:
+            data = request.get_json()
+            session_id = data.get('session_id')
+            use_vocals_stem = data.get('use_vocals_stem', True)
+
+            if not session_id or session_id not in PROCESSOR_SESSIONS:
+                return jsonify({'status': 'error', 'message': 'Invalid session'}), 400
+
+            # Queue task
+            task = celery_tasks.extract_melody_task.delay(session_id, use_vocals_stem)
+
+            return jsonify({
+                'status': 'queued',
+                'task_id': task.id,
+                'status_url': f'/api/task-status/{task.id}',
+                'message': 'Melody extraction queued'
+            })
+
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to queue task: {str(e)}'
+            }), 500
+
+    @app.route('/api/detect-chords-async', methods=['POST'])
+    def detect_chords_async():
+        """
+        Async version: Detect chord progression
+
+        Returns task_id for polling/WebSocket subscription
+        """
+        try:
+            data = request.get_json()
+            session_id = data.get('session_id')
+            use_vocals_stem = data.get('use_vocals_stem', True)
+
+            if not session_id or session_id not in PROCESSOR_SESSIONS:
+                return jsonify({'status': 'error', 'message': 'Invalid session'}), 400
+
+            # Queue task
+            task = celery_tasks.detect_chords_task.delay(session_id, use_vocals_stem)
+
+            return jsonify({
+                'status': 'queued',
+                'task_id': task.id,
+                'status_url': f'/api/task-status/{task.id}',
+                'message': 'Chord detection queued'
+            })
+
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to queue task: {str(e)}'
+            }), 500
+
+    @app.route('/api/generate-accompaniment-async', methods=['POST'])
+    def generate_accompaniment_async():
+        """
+        Async version: Generate accompaniment
+
+        Returns task_id for polling/WebSocket subscription
+        """
+        try:
+            data = request.get_json()
+            session_id = data.get('session_id')
+            tempo_bpm = data.get('tempo_bpm', 120)
+            key = data.get('key', 'C')
+            character_config = data.get('character_config')
+
+            if not session_id or session_id not in PROCESSOR_SESSIONS:
+                return jsonify({'status': 'error', 'message': 'Invalid session'}), 400
+
+            # Queue task
+            task = celery_tasks.generate_accompaniment_task.delay(
+                session_id, tempo_bpm, key, character_config
+            )
+
+            return jsonify({
+                'status': 'queued',
+                'task_id': task.id,
+                'status_url': f'/api/task-status/{task.id}',
+                'message': 'Accompaniment generation queued'
+            })
+
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to queue task: {str(e)}'
+            }), 500
+
+    @app.route('/api/task-status/<task_id>', methods=['GET'])
+    def get_task_status(task_id):
+        """Get current task status"""
+        try:
+            result = AsyncResult(task_id, app=celery)
+
+            if result.state == 'PENDING':
+                return jsonify({'state': 'PENDING', 'current': 0, 'total': 100, 'percentage': 0, 'message': 'Queued...'})
+            elif result.state == 'PROGRESS':
+                return jsonify(result.info)
+            elif result.state == 'SUCCESS':
+                return jsonify({'state': 'SUCCESS', 'current': 100, 'total': 100, 'percentage': 100, 'result': result.result})
+            elif result.state == 'FAILURE':
+                return jsonify({'state': 'FAILURE', 'message': str(result.info), 'error': True}), 500
+            else:
+                return jsonify({'state': result.state, 'message': str(result.info)})
+
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @app.route('/api/task-result/<task_id>', methods=['GET'])
+    def get_task_result(task_id):
+        """Get task result (blocks until complete)"""
+        try:
+            result = AsyncResult(task_id, app=celery)
+
+            if result.state == 'SUCCESS':
+                return jsonify({'status': 'success', 'result': result.result})
+            elif result.state == 'FAILURE':
+                return jsonify({'status': 'error', 'message': str(result.info)}), 500
+            else:
+                return jsonify({'status': result.state, 'message': 'Task not yet complete'}), 202
+
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# ============================================================================
 # CLI Entry Point
 # ============================================================================
 
@@ -715,19 +953,22 @@ if __name__ == '__main__':
 
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
 
-    phase_status = "✓ Phase 2 (Accompaniment Generation) ENABLED" if PHASE2_AVAILABLE else "✗ Phase 2 disabled (modules missing)"
+    phase2_status = "✓ Phase 2 (Accompaniment Generation) ENABLED" if PHASE2_AVAILABLE else "✗ Phase 2 disabled"
+    phase3a_status = "✓ Phase 3A (Async Processing) ENABLED" if PHASE3A_AVAILABLE else "⚠️  Phase 3A disabled (Celery/Redis not available)"
 
     print(f"""
 ╭─────────────────────────────────────────────────────╮
 │  SongShapes Audio Regeneration System               │
 │  Phase 1: Stem separation + character effects      │
 │  Phase 2: Accompaniment generation (bass + drums)  │
+│  Phase 3A: Async task processing (WebSocket)       │
 ╭─────────────────────────────────────────────────────╯
 │
 │  🎵 Running on: http://localhost:{port}
 │  📁 Temp folder: {app.config['UPLOAD_FOLDER']}
 │  ⚙️  Max upload: 100MB
-│  📊 {phase_status}
+│  📊 {phase2_status}
+│  ⚡ {phase3a_status}
 │
 │  Usage:
 │    Phase 1 (Stem Separation):
@@ -743,14 +984,33 @@ if __name__ == '__main__':
 │      4. Apply character effects
 │      5. Download mixed track
 │
+│    Phase 3A (Async Processing):
+│      - Use -async endpoints for non-blocking operations
+│      - Subscribe to WebSocket for real-time progress updates
+│      - Poll /api/task-status/<task_id> for progress
+│
+│  Celery Worker (if Phase 3A enabled):
+│      celery -A celery_tasks worker --loglevel=info
+│
 │  Press Ctrl+C to stop
 │
 ╭─────────────────────────────────────────────────────╮
     """)
 
-    app.run(
-        debug=True,
-        host='localhost',
-        port=port,
-        use_reloader=True
-    )
+    # Use SocketIO runner if Phase 3A available, else regular Flask
+    if PHASE3A_AVAILABLE:
+        socketio.run(
+            app,
+            debug=True,
+            host='localhost',
+            port=port,
+            use_reloader=False,
+            allow_unsafe_werkzeug=True
+        )
+    else:
+        app.run(
+            debug=True,
+            host='localhost',
+            port=port,
+            use_reloader=True
+        )
