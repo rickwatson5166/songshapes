@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    working_dir: /app
+  flask:
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
+    ports:
+      - "5000:5000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      FLASK_ENV: development
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: python3 app.py 5000
