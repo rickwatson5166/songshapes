@@ -1,0 +1,18 @@
+0 verbose cli /opt/node22/bin/node /opt/node22/bin/npm
+1 info using npm@10.9.4
+2 info using node@v22.22.0
+3 silly config load:file:/opt/node22/lib/node_modules/npm/npmrc
+4 silly config load:file:/tmp/claude-0/-home-claude/c7e4a047-4ffd-5e9c-9b13-bfa78c5ad267/scratchpad/songshapes-studio/frontend/.npmrc
+5 silly config load:file:/root/.npmrc
+6 silly config load:file:/opt/node22/etc/npmrc
+7 verbose title npm start
+8 verbose argv "start"
+9 verbose logfile logs-max:10 dir:/home/claude/.npm/_logs/2026-10-11T00_30_08_463Z-
+10 verbose logfile /home/claude/.npm/_logs/2026-10-11T00_30_08_463Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /tmp/claude-0/-home-claude/c7e4a047-4ffd-5e9c-9b13-bfa78c5ad267/scratchpad/songshapes-studio/frontend
+13 verbose os Linux 6.18.44-fc-v114
+14 verbose node v22.22.0
+15 verbose npm  v10.9.4
+16 verbose exit 1
+17 verbose code 1

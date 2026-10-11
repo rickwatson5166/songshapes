@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastercrafter - AI Music Accompaniment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        main {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.active {
+            background: #e8eaf6;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .analysis-display {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .analysis-display.active {
+            display: block;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .info-card .label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-card .value {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .track-manager {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .track {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .track.locked {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+
+        .track h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .track-icon {
+            font-size: 1.5em;
+        }
+
+        .lock-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-regenerate {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-lock {
+            flex: 1;
+            min-width: 80px;
+            background: #666;
+            color: white;
+        }
+
+        .btn-lock:hover {
+            background: #555;
+        }
+
+        .btn-lock.locked {
+            background: #4caf50;
+        }
+
+        .btn-lock.locked:hover {
+            background: #45a049;
+        }
+
+        .player-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .player-section.active {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+            margin: 15px 0;
+            outline: none;
+        }
+
+        .export-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .export-section.active {
+            display: block;
+        }
+
+        .stems-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .stems-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-message.active {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .workflow-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .workflow-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .workflow-step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: -1;
+        }
+
+        .workflow-step:last-child::after {
+            display: none;
+        }
+
+        .workflow-step .number {
+            width: 40px;
+            height: 40px;
+            background: #e0e0e0;
+            color: #666;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step.active .number {
+            background: #667eea;
+            color: white;
+        }
+
+        .workflow-step.complete .number {
+            background: #4caf50;
+            color: white;
+        }
+
+        .workflow-step .label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Mastercrafter</h1>
+            <p class="subtitle">AI-Powered Music Accompaniment Generation</p>
+        </header>
+
+        <main>
+            <!-- Workflow Indicator -->
+            <div class="workflow-indicator">
+                <div class="workflow-step complete" id="step-upload">
+                    <div class="number">✓</div>
+                    <div class="label">Upload</div>
+                </div>
+                <div class="workflow-step" id="step-analyze">
+                    <div class="number">2</div>
+                    <div class="label">Analyze</div>
+                </div>
+                <div class="workflow-step" id="step-drums">
+                    <div class="number">3</div>
+                    <div class="label">Drums</div>
+                </div>
+                <div class="workflow-step" id="step-bass">
+                    <div class="number">4</div>
+                    <div class="label">Bass</div>
+                </div>
+                <div class="workflow-step" id="step-pads">
+                    <div class="number">5</div>
+                    <div class="label">Pads</div>
+                </div>
+                <div class="workflow-step" id="step-export">
+                    <div class="number">6</div>
+                    <div class="label">Export</div>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusMessage" class="status-message"></div>
+
+            <!-- Upload Section -->
+            <div class="section" id="uploadSection">
+                <h2>📁 Upload Your Audio</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📤</div>
+                    <p><strong>Click or drag audio file here</strong></p>
+                    <p style="font-size: 0.9em; color: #666; margin-top: 5px;">WAV, MP3, FLAC, or OGG (max 50MB)</p>
+                    <input type="file" id="fileInput" accept="audio/*">
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="section" id="analysisSection" style="display: none;">
+                <h2>🎯 Analysis</h2>
+                <div id="analysisDisplay" class="analysis-display">
+                    <div class="info-grid" id="analysisGrid"></div>
+                    <button class="btn-primary" onclick="generateAccompaniment()">
+                        Generate Accompaniment
+                    </button>
+                </div>
+            </div>
+
+            <!-- Track Management Section -->
+            <div class="section" id="trackSection" style="display: none;">
+                <h2>🎛️ Track-by-Track Control</h2>
+                <p style="color: #666; margin-bottom: 20px;">Regenerate individual tracks as many times as you want. Lock them when satisfied!</p>
+
+                <div class="track-manager" id="trackManager"></div>
+
+                <!-- Audio Player -->
+                <div class="player-section" id="playerSection">
+                    <h3>🔊 Preview Accompaniment</h3>
+                    <div>
+                        <h4 style="margin: 15px 0 10px;">Mixed (Drums + Bass + Pads)</h4>
+                        <audio id="mixedAudio" controls></audio>
+                    </div>
+                    <div>
+                        <h4 style="margin: 15px 0 10px;">Drums Only</h4>
+                        <audio id="drumsAudio" controls></audio>
+                    </div>
+                    <div>
+                        <h4 style="margin: 15px 0 10px;">Bass Only</h4>
+                        <audio id="bassAudio" controls></audio>
+                    </div>
+                    <div>
+                        <h4 style="margin: 15px 0 10px;">Pads Only</h4>
+                        <audio id="padsAudio" controls></audio>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="section" id="exportSection" style="display: none;">
+                <h2>💾 Export Stems</h2>
+                <p style="color: #666; margin-bottom: 20px;">Export individual stems for use in your DAW or further customization.</p>
+                <button class="btn-primary" onclick="exportStems()">
+                    Download All Stems
+                </button>
+                <ul class="stems-list" id="stemsList"></ul>
+            </div>
+        </main>
+
+        <footer>
+            <p>Mastercrafter © 2026 | Theory-based AI music generation | No copyright training data</p>
+        </footer>
+    </div>
+
+    <script>
+        // UI State
+        let appState = {
+            sessionId: null,
+            analysisData: null,
+            lockedTracks: []
+        };
+
+        // Upload Handler
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadFile(e.target.files[0]);
+            }
+        });
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showStatus('Uploading file...', 'info');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showStatus(`✓ Uploaded: ${file.name} (${data.duration.toFixed(1)}s)`, 'success');
+                    await analyzeAudio();
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error uploading file', 'error');
+                console.error(error);
+            }
+        }
+
+        async function analyzeAudio() {
+            showStatus('Analyzing audio (Week 1 + Stage 1)...', 'info');
+            updateWorkflow('analyze', 'active');
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    appState.analysisData = data.analysis;
+                    displayAnalysis(data.analysis);
+                    updateWorkflow('analyze', 'complete');
+                    updateWorkflow('drums', 'active');
+
+                    document.getElementById('analysisSection').style.display = 'block';
+                    showStatus('✓ Analysis complete! Ready to generate accompaniment.', 'success');
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error analyzing audio', 'error');
+                console.error(error);
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            const grid = document.getElementById('analysisGrid');
+            grid.innerHTML = `
+                <div class="info-card">
+                    <div class="label">Key</div>
+                    <div class="value">${analysis.key}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Tempo</div>
+                    <div class="value">${analysis.tempo} BPM</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Time Signature</div>
+                    <div class="value">${analysis.time_signature}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Articulation</div>
+                    <div class="value">${analysis.articulation}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Timing</div>
+                    <div class="value">${analysis.timing}</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Expression</div>
+                    <div class="value">${analysis.expression}</div>
+                </div>
+            `;
+        }
+
+        async function generateAccompaniment() {
+            showStatus('Generating accompaniment (Stage 2)...', 'info');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    await synthesizeAudio();
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error generating accompaniment', 'error');
+                console.error(error);
+            }
+        }
+
+        async function synthesizeAudio() {
+            showStatus('Synthesizing audio (Stage 3)...', 'info');
+
+            try {
+                const response = await fetch('/api/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayTracks();
+                    loadAudioPlayers();
+                    updateWorkflow('drums', 'complete');
+                    updateWorkflow('bass', 'active');
+
+                    document.getElementById('trackSection').style.display = 'block';
+                    showStatus('✓ Accompaniment ready! Audition and lock tracks.', 'success');
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error synthesizing audio', 'error');
+                console.error(error);
+            }
+        }
+
+        function displayTracks() {
+            const tracks = [
+                { id: 'drums', name: 'Drums', icon: '🥁' },
+                { id: 'bass', name: 'Bass', icon: '🎸' },
+                { id: 'pads', name: 'Pads', icon: '🎹' }
+            ];
+
+            const manager = document.getElementById('trackManager');
+            manager.innerHTML = tracks.map(track => `
+                <div class="track" id="track-${track.id}">
+                    <h3>
+                        <span>${track.icon} ${track.name}</span>
+                    </h3>
+                    <div class="track-controls">
+                        <button class="btn-primary btn-regenerate btn-small" onclick="regenerateTrack('${track.id}')">
+                            ↻ Regenerate
+                        </button>
+                        <button class="btn-lock btn-small" id="lockBtn-${track.id}" onclick="toggleLock('${track.id}')">
+                            🔓 Lock
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadAudioPlayers() {
+            document.getElementById('mixedAudio').src = '/api/audio/mixed';
+            document.getElementById('drumsAudio').src = '/api/audio/drums';
+            document.getElementById('bassAudio').src = '/api/audio/bass';
+            document.getElementById('padsAudio').src = '/api/audio/pads';
+
+            document.getElementById('playerSection').classList.add('active');
+        }
+
+        async function regenerateTrack(track) {
+            if (appState.lockedTracks.includes(track)) {
+                showStatus(`${track} is locked!`, 'error');
+                return;
+            }
+
+            showStatus(`Regenerating ${track}...`, 'info');
+
+            try {
+                const response = await fetch('/api/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ regenerate_tracks: [track] })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    loadAudioPlayers();
+                    showStatus(`✓ ${track} regenerated!`, 'success');
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error regenerating track', 'error');
+                console.error(error);
+            }
+        }
+
+        async function toggleLock(track) {
+            const isLocked = appState.lockedTracks.includes(track);
+            const endpoint = isLocked ? `/api/unlock/${track}` : `/api/lock/${track}`;
+
+            try {
+                const response = await fetch(endpoint, { method: 'POST' });
+                const data = await response.json();
+
+                appState.lockedTracks = data.locked_tracks;
+                updateLockButtons();
+                updateTrackVisuals();
+
+                const lockBtn = document.getElementById(`lockBtn-${track}`);
+                if (isLocked) {
+                    showStatus(`${track} unlocked`, 'info');
+                    lockBtn.textContent = '🔓 Lock';
+                    lockBtn.classList.remove('locked');
+                } else {
+                    showStatus(`${track} locked!`, 'success');
+                    lockBtn.textContent = '🔒 Locked';
+                    lockBtn.classList.add('locked');
+                }
+            } catch (error) {
+                showStatus('Error toggling lock', 'error');
+                console.error(error);
+            }
+        }
+
+        function updateLockButtons() {
+            ['drums', 'bass', 'pads'].forEach(track => {
+                const isLocked = appState.lockedTracks.includes(track);
+                const btn = document.getElementById(`lockBtn-${track}`);
+                if (isLocked) {
+                    btn.textContent = '🔒 Locked';
+                    btn.classList.add('locked');
+                } else {
+                    btn.textContent = '🔓 Lock';
+                    btn.classList.remove('locked');
+                }
+            });
+        }
+
+        function updateTrackVisuals() {
+            ['drums', 'bass', 'pads'].forEach(track => {
+                const trackEl = document.getElementById(`track-${track}`);
+                if (appState.lockedTracks.includes(track)) {
+                    trackEl.classList.add('locked');
+                } else {
+                    trackEl.classList.remove('locked');
+                }
+            });
+        }
+
+        async function exportStems() {
+            showStatus('Exporting stems...', 'info');
+
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayStems(data.stems);
+                    updateWorkflow('export', 'complete');
+                    document.getElementById('exportSection').classList.add('active');
+                    showStatus('✓ Stems ready for download!', 'success');
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Error exporting stems', 'error');
+                console.error(error);
+            }
+        }
+
+        function displayStems(stems) {
+            const list = document.getElementById('stemsList');
+            list.innerHTML = Object.entries(stems).map(([type, path]) => `
+                <li>
+                    <span>${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                    <a href="${path}" download class="btn-secondary btn-small">Download</a>
+                </li>
+            `).join('');
+        }
+
+        function updateWorkflow(step, status) {
+            const stepEl = document.getElementById(`step-${step}`);
+            if (status === 'active') {
+                stepEl.classList.remove('complete');
+                stepEl.classList.add('active');
+            } else if (status === 'complete') {
+                stepEl.classList.remove('active');
+                stepEl.classList.add('complete');
+                const number = stepEl.querySelector('.number');
+                number.textContent = '✓';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message active ${type}`;
+        }
+    </script>
+</body>
+</html>

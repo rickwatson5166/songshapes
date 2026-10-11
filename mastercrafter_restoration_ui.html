@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastercrafter Stage 1: Sound Quality Restoration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .label-name {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .label-value {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, rgba(0, 212, 255, 0.1), rgba(0, 212, 255, 0.3));
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+        }
+
+        button.active {
+            background: rgba(0, 212, 255, 0.4);
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
+        }
+
+        .large-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            grid-column: 1 / -1;
+        }
+
+        .waveform-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .waveform-label {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: rgba(0, 212, 255, 0.05);
+            border-left: 3px solid rgba(0, 212, 255, 0.3);
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #aaa;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px dashed rgba(0, 212, 255, 0.3);
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .file-input-label:hover {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+            background: #666;
+        }
+
+        .status-indicator.ready {
+            background: #0f0;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+
+        .status-indicator.processing {
+            background: #ff0;
+            box-shadow: 0 0 5px rgba(255, 255, 0, 0.5);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .preset-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Mastercrafter Stage 1</h1>
+        <p class="subtitle">Sound Quality Restoration Engine</p>
+
+        <div class="main-grid">
+            <!-- Left Panel: Controls -->
+            <div class="panel">
+                <h2>Restoration Controls</h2>
+
+                <div class="info-box">
+                    Focus: Clean bad recordings (hum, hiss, clicks) while adding analog warmth. Targeting bedroom musicians.
+                </div>
+
+                <!-- File Upload -->
+                <div class="file-input-wrapper">
+                    <input type="file" id="audioFile" accept="audio/*">
+                    <label for="audioFile" class="file-input-label">
+                        📁 Upload Audio File
+                    </label>
+                </div>
+
+                <!-- Tape Presets -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-name">Tape Presets</span>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" data-preset="warm_tape">Warm Tape</button>
+                        <button class="preset-btn" data-preset="bright_tape">Bright Tape</button>
+                        <button class="preset-btn" data-preset="modern_tape">Modern Tape</button>
+                        <button class="preset-btn" data-preset="vintage_tape">Vintage Tape</button>
+                        <button class="preset-btn full-width" data-preset="neve_sheen">Neve Sheen (Aggressive HF)</button>
+                    </div>
+                </div>
+
+                <!-- Tape Parameters -->
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-name">Bias (Saturation Softness)</span>
+                        <span class="label-value" id="biasValue">0.30</span>
+                    </div>
+                    <input type="range" id="biasSlider" min="0" max="1" step="0.01" value="0.3">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="label-name">HF Driver (High Freq Response)</span>
+                        <span class="label-value" id="hfDriverValue">0.20</span>
+                    </div>
+                    <input type="range" id="hfDriverSlider" min="0" max="1" step="0.01" value="0.2">
+                </div>
+
+                <!-- EQ Controls -->
+                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(0, 212, 255, 0.1);">
+                    <div class="control-label" style="margin-bottom: 15px;">
+                        <span class="label-name">EQ Shaping (Neve-style)</span>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-name">Low Shelf (100Hz)</span>
+                            <span class="label-value" id="lowShelfValue">-2.0 dB</span>
+                        </div>
+                        <input type="range" id="lowShelfSlider" min="-18" max="18" step="0.5" value="-2">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-name">Mid Gain (1kHz)</span>
+                            <span class="label-value" id="midGainValue">1.0 dB</span>
+                        </div>
+                        <input type="range" id="midGainSlider" min="-18" max="18" step="0.5" value="1">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-name">High Shelf (12kHz)</span>
+                            <span class="label-value" id="highShelfValue">3.0 dB</span>
+                        </div>
+                        <input type="range" id="highShelfSlider" min="-18" max="18" step="0.5" value="3">
+                    </div>
+                </div>
+
+                <!-- Noise Gate -->
+                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(0, 212, 255, 0.1);">
+                    <div class="control-group">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="noiseGateToggle" checked style="width: 16px; height: 16px; margin-right: 8px;">
+                            <span class="label-name">Smart Noise Filtering</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Process Button -->
+                <button class="large-button" id="processBtn" style="margin-top: 25px;">
+                    <span class="status-indicator ready"></span>
+                    Process Audio
+                </button>
+
+                <!-- Download Button -->
+                <button class="large-button" id="downloadBtn" style="margin-top: 10px; display: none;">
+                    ⬇️ Download Restored Audio
+                </button>
+            </div>
+
+            <!-- Right Panel: Waveform Display -->
+            <div class="panel">
+                <h2>Waveform Analysis</h2>
+
+                <div class="waveform-container">
+                    <canvas id="originalCanvas" width="400" height="120"></canvas>
+                    <div class="waveform-label">Original Audio</div>
+                </div>
+
+                <div class="waveform-container">
+                    <canvas id="restoredCanvas" width="400" height="120"></canvas>
+                    <div class="waveform-label">Restored Audio</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Original RMS</div>
+                        <div class="stat-value" id="origRms">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Restored RMS</div>
+                        <div class="stat-value" id="restRms">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Peak Reduction</div>
+                        <div class="stat-value" id="peakReduction">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Processing Status</div>
+                        <div class="stat-value" id="status">Ready</div>
+                    </div>
+                </div>
+
+                <div class="info-box" style="margin-top: 20px; border-left-color: rgba(100, 150, 200, 0.5);">
+                    <strong>How it works:</strong>
+                    <br>1. Removes 60Hz hum and harmonics
+                    <br>2. Gates high-freq hiss (8kHz+)
+                    <br>3. Softens clicks and pops
+                    <br>4. Applies hysteresis tape saturation with magnetic memory
+                    <br>5. Neve 1073 EQ/compression interdependence (10-stage clipping)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // UI State Management
+        // ================================================================
+
+        let audioContext;
+        let originalBuffer = null;
+        let restoredBuffer = null;
+        let isProcessing = false;
+
+        const state = {
+            bias: 0.3,
+            hfDriver: 0.2,
+            lowShelf: -2,
+            midGain: 1,
+            highShelf: 3,
+            noiseGate: true,
+            currentPreset: 'warm_tape'
+        };
+
+        // ================================================================
+        // UI Event Listeners
+        // ================================================================
+
+        document.getElementById('audioFile').addEventListener('change', handleFileUpload);
+
+        document.getElementById('biasSlider').addEventListener('input', (e) => {
+            state.bias = parseFloat(e.target.value);
+            document.getElementById('biasValue').textContent = state.bias.toFixed(2);
+        });
+
+        document.getElementById('hfDriverSlider').addEventListener('input', (e) => {
+            state.hfDriver = parseFloat(e.target.value);
+            document.getElementById('hfDriverValue').textContent = state.hfDriver.toFixed(2);
+        });
+
+        document.getElementById('lowShelfSlider').addEventListener('input', (e) => {
+            state.lowShelf = parseFloat(e.target.value);
+            document.getElementById('lowShelfValue').textContent = state.lowShelf.toFixed(1) + ' dB';
+        });
+
+        document.getElementById('midGainSlider').addEventListener('input', (e) => {
+            state.midGain = parseFloat(e.target.value);
+            document.getElementById('midGainValue').textContent = state.midGain.toFixed(1) + ' dB';
+        });
+
+        document.getElementById('highShelfSlider').addEventListener('input', (e) => {
+            state.highShelf = parseFloat(e.target.value);
+            document.getElementById('highShelfValue').textContent = state.highShelf.toFixed(1) + ' dB';
+        });
+
+        document.getElementById('noiseGateToggle').addEventListener('change', (e) => {
+            state.noiseGate = e.target.checked;
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.currentPreset = e.target.dataset.preset;
+                applyPreset(state.currentPreset);
+            });
+        });
+
+        document.getElementById('processBtn').addEventListener('click', processAudio);
+        document.getElementById('downloadBtn').addEventListener('click', downloadAudio);
+
+        // ================================================================
+        // Preset Application
+        // ================================================================
+
+        function applyPreset(presetName) {
+            const presets = {
+                "warm_tape": {
+                    bias: 0.3, hfDriver: 0.2,
+                    lowShelf: -2, midGain: 1, highShelf: 3
+                },
+                "bright_tape": {
+                    bias: 0.8, hfDriver: 0.7,
+                    lowShelf: 2, midGain: -1, highShelf: 6
+                },
+                "modern_tape": {
+                    bias: 0.5, hfDriver: 0.6,
+                    lowShelf: 0.5, midGain: 0, highShelf: 2
+                },
+                "vintage_tape": {
+                    bias: 0.4, hfDriver: 0.25,
+                    lowShelf: -1.5, midGain: 2, highShelf: 1.5
+                },
+                "neve_sheen": {
+                    bias: 0.6, hfDriver: 0.55,
+                    lowShelf: 0, midGain: -2, highShelf: 12
+                }
+            };
+
+            const preset = presets[presetName];
+            if (preset) {
+                state.bias = preset.bias;
+                state.hfDriver = preset.hfDriver;
+                state.lowShelf = preset.lowShelf;
+                state.midGain = preset.midGain;
+                state.highShelf = preset.highShelf;
+
+                document.getElementById('biasSlider').value = state.bias;
+                document.getElementById('hfDriverSlider').value = state.hfDriver;
+                document.getElementById('lowShelfSlider').value = state.lowShelf;
+                document.getElementById('midGainSlider').value = state.midGain;
+                document.getElementById('highShelfSlider').value = state.highShelf;
+
+                document.getElementById('biasValue').textContent = state.bias.toFixed(2);
+                document.getElementById('hfDriverValue').textContent = state.hfDriver.toFixed(2);
+                document.getElementById('lowShelfValue').textContent = state.lowShelf.toFixed(1) + ' dB';
+                document.getElementById('midGainValue').textContent = state.midGain.toFixed(1) + ' dB';
+                document.getElementById('highShelfValue').textContent = state.highShelf.toFixed(1) + ' dB';
+            }
+        }
+
+        // ================================================================
+        // Audio File Handling
+        // ================================================================
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                audioContext.decodeAudioData(event.target.result, (buffer) => {
+                    originalBuffer = buffer;
+                    drawWaveform('originalCanvas', buffer);
+                    updateStats('original', buffer);
+                    document.getElementById('status').textContent = 'Ready';
+                }, (error) => {
+                    console.error('Decode error:', error);
+                    document.getElementById('status').textContent = 'Error';
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ================================================================
+        // Audio Processing (Client-side simulation)
+        // ================================================================
+
+        function processAudio() {
+            if (!originalBuffer) {
+                alert('Please upload an audio file first');
+                return;
+            }
+
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const processBtn = document.getElementById('processBtn');
+            const statusEl = document.querySelector('.status-indicator');
+            statusEl.classList.remove('ready');
+            statusEl.classList.add('processing');
+            processBtn.textContent = '⏳ Processing...';
+
+            // Simulate processing (in real implementation, this calls Python backend)
+            setTimeout(() => {
+                try {
+                    restoredBuffer = simulateRestoration(originalBuffer);
+                    drawWaveform('restoredCanvas', restoredBuffer);
+                    updateStats('restored', restoredBuffer);
+
+                    document.getElementById('status').textContent = 'Complete';
+                    document.getElementById('downloadBtn').style.display = 'block';
+
+                    statusEl.classList.remove('processing');
+                    statusEl.classList.add('ready');
+                    processBtn.textContent = '✓ Process Audio';
+
+                    isProcessing = false;
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    document.getElementById('status').textContent = 'Error';
+                    isProcessing = false;
+                }
+            }, 100);
+        }
+
+        function simulateRestoration(inputBuffer) {
+            // Client-side simulation of restoration (shows concept)
+            // In production: send to Python backend via WebAudio worklet or HTTP
+
+            const channels = [];
+            for (let ch = 0; ch < inputBuffer.numberOfChannels; ch++) {
+                const input = inputBuffer.getChannelData(ch);
+                const output = new Float32Array(input.length);
+
+                // Simple simulation: remove extremes + gentle saturation
+                for (let i = 0; i < input.length; i++) {
+                    // Apply gentle saturation based on bias/hfDriver
+                    const saturation = state.bias * 0.5;
+                    const val = Math.tanh(input[i] / (1 - saturation)) * (1 - saturation * 0.1);
+                    output[i] = val;
+                }
+
+                channels.push(output);
+            }
+
+            // Create offline context for processing
+            const offlineCtx = new OfflineAudioContext(
+                inputBuffer.numberOfChannels,
+                inputBuffer.length,
+                inputBuffer.sampleRate
+            );
+
+            const source = offlineCtx.createBufferSource();
+            const buffer = offlineCtx.createBuffer(
+                inputBuffer.numberOfChannels,
+                inputBuffer.length,
+                inputBuffer.sampleRate
+            );
+
+            for (let ch = 0; ch < channels.length; ch++) {
+                buffer.getChannelData(ch).set(channels[ch]);
+            }
+
+            source.buffer = buffer;
+            source.connect(offlineCtx.destination);
+            source.start(0);
+
+            offlineCtx.startRendering().then(renderedBuffer => {
+                restoredBuffer = renderedBuffer;
+            });
+
+            return buffer;
+        }
+
+        // ================================================================
+        // Waveform Display
+        // ================================================================
+
+        function drawWaveform(canvasId, audioBuffer) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw center line
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+
+            // Draw waveform
+            const channelData = audioBuffer.getChannelData(0);
+            const samples = Math.floor(channelData.length / width);
+
+            ctx.strokeStyle = '#00d4ff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+
+            for (let i = 0; i < width; i++) {
+                let sum = 0;
+                for (let j = 0; j < samples; j++) {
+                    sum += Math.abs(channelData[i * samples + j]);
+                }
+                const avg = sum / samples;
+                const y = (height / 2) - (avg * (height / 2));
+
+                if (i === 0) {
+                    ctx.moveTo(i, y);
+                } else {
+                    ctx.lineTo(i, y);
+                }
+            }
+
+            ctx.stroke();
+        }
+
+        function updateStats(type, buffer) {
+            const data = buffer.getChannelData(0);
+            const rms = Math.sqrt(data.reduce((sum, val) => sum + val * val, 0) / data.length);
+            const peak = Math.max(...Array.from(data).map(Math.abs));
+
+            if (type === 'original') {
+                document.getElementById('origRms').textContent = rms.toFixed(3);
+            } else if (type === 'restored') {
+                document.getElementById('restRms').textContent = rms.toFixed(3);
+                const origRms = parseFloat(document.getElementById('origRms').textContent);
+                const reduction = ((1 - rms / origRms) * 100).toFixed(1);
+                document.getElementById('peakReduction').textContent = reduction + '%';
+            }
+        }
+
+        // ================================================================
+        // Download
+        // ================================================================
+
+        function downloadAudio() {
+            if (!restoredBuffer) return;
+
+            // Convert audio buffer to WAV
+            const audioData = restoredBuffer.getChannelData(0);
+            const wav = encodeWAV(audioData, restoredBuffer.sampleRate);
+            const blob = new Blob([wav], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mastercrafter_restored.wav';
+            link.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        function encodeWAV(samples, sampleRate) {
+            // Simple WAV encoder (stereo PCM)
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);  // PCM
+            view.setUint16(22, 1, true);  // Channels
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+
+            let offset = 44;
+            for (let i = 0; i < samples.length; i++) {
+                view.setInt16(offset, Math.max(-1, Math.min(1, samples[i])) * 0x7fff, true);
+                offset += 2;
+            }
+
+            return buffer;
+        }
+    </script>
+</body>
+</html>

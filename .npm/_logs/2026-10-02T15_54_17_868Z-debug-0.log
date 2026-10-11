@@ -1,0 +1,57 @@
+0 verbose cli /opt/node22/bin/node /opt/node22/bin/npm
+1 info using npm@10.9.4
+2 info using node@v22.22.0
+3 silly config load:file:/opt/node22/lib/node_modules/npm/npmrc
+4 silly config load:file:/root/.npmrc
+5 silly config load:file:/opt/node22/etc/npmrc
+6 verbose title npm install @playwright/mcp@0.0.68
+7 verbose argv "install" "--global" "--ignore-scripts" "@playwright/mcp@0.0.68"
+8 verbose logfile logs-max:10 dir:/home/claude/.npm/_logs/2026-10-02T15_54_17_868Z-
+9 verbose logfile /home/claude/.npm/_logs/2026-10-02T15_54_17_868Z-debug-0.log
+10 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+11 silly logfile done cleaning log files
+12 silly idealTree buildDeps
+13 silly fetch manifest @playwright/mcp@0.0.68
+14 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/@playwright%2fmcp cache-miss
+15 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/@playwright%2fmcp 63ms (cache miss)
+16 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/@playwright%2fmcp set size:undefined disposed:false
+17 silly placeDep ROOT @playwright/mcp@0.0.68 OK for:  want: 0.0.68
+18 silly fetch manifest playwright@1.59.0-alpha-1771104257000
+19 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright cache-miss
+20 silly fetch manifest playwright-core@1.59.0-alpha-1771104257000
+21 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright-core cache-miss
+22 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright 17ms (cache miss)
+23 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright set size:undefined disposed:false
+24 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright-core 29ms (cache miss)
+25 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright-core set size:undefined disposed:false
+26 silly placeDep node_modules/@playwright/mcp playwright@1.59.0-alpha-1771104257000 OK for: @playwright/mcp@0.0.68 want: 1.59.0-alpha-1771104257000
+27 silly placeDep node_modules/@playwright/mcp playwright-core@1.59.0-alpha-1771104257000 OK for: @playwright/mcp@0.0.68 want: 1.59.0-alpha-1771104257000
+28 silly fetch manifest fsevents@2.3.2
+29 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/fsevents cache-miss
+30 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/fsevents 14ms (cache miss)
+31 silly packumentCache full:https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/fsevents set size:undefined disposed:false
+32 silly placeDep node_modules/@playwright/mcp fsevents@2.3.2 OK for: playwright@1.59.0-alpha-1771104257000 want: 2.3.2
+33 silly reify moves {}
+34 verbose reify failed optional dependency /home/claude/.npm-global/lib/node_modules/@playwright/mcp/node_modules/fsevents
+35 silly reify mark deleted [
+35 silly reify   '/home/claude/.npm-global/lib/node_modules/@playwright/mcp/node_modules/fsevents'
+35 silly reify ]
+36 http cache @playwright/mcp@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/@playwright/mcp/-/mcp-0.0.68.tgz 1ms (cache hit)
+37 http cache playwright-core@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/playwright-core/-/playwright-core-1.59.0-alpha-1771104257000.tgz 0ms (cache hit)
+38 http cache playwright@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/playwright/-/playwright-1.59.0-alpha-1771104257000.tgz 0ms (cache hit)
+39 silly tarball no local data for @playwright/mcp@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/@playwright/mcp/-/mcp-0.0.68.tgz. Extracting by manifest.
+40 silly tarball no local data for playwright-core@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/playwright-core/-/playwright-core-1.59.0-alpha-1771104257000.tgz. Extracting by manifest.
+41 silly tarball no local data for playwright@https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-approved-virtual/playwright/-/playwright-1.59.0-alpha-1771104257000.tgz. Extracting by manifest.
+42 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/@playwright/mcp/-/mcp-0.0.68.tgz 35ms (cache miss)
+43 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright/-/playwright-1.59.0-alpha-1771104257000.tgz 123ms (cache miss)
+44 http fetch GET 200 https://artifactory.infra.ant.dev/artifactory/api/npm/npm-approved-virtual/playwright-core/-/playwright-core-1.59.0-alpha-1771104257000.tgz 173ms (cache miss)
+45 silly ADD node_modules/@playwright/mcp
+46 silly ADD
+47 silly ADD node_modules/@playwright/mcp/node_modules/playwright-core
+48 silly ADD node_modules/@playwright/mcp/node_modules/playwright
+49 verbose cwd /home/claude
+50 verbose os Linux 6.12.95-124.187.amzn2023.x86_64
+51 verbose node v22.22.0
+52 verbose npm  v10.9.4
+53 verbose exit 0
+54 info ok
