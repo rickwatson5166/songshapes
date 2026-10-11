@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SongShapes - Audio Regeneration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.95;
+            margin-bottom: 5px;
+        }
+
+        .tagline {
+            font-size: 0.95em;
+            opacity: 0.85;
+        }
+
+        main {
+            padding: 40px;
+        }
+
+        .workflow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .step {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            border-left-color: #667eea;
+            background: #e8eaf6;
+            font-weight: 600;
+        }
+
+        .step.complete {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            line-height: 30px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .step.complete .step-number {
+            background: #4caf50;
+        }
+
+        .step-label {
+            font-size: 0.95em;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 50px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.active {
+            background: #e8eaf6;
+            border-color: #764ba2;
+            border-style: solid;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 0.95em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Status Display */
+        .status-box {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-box.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+
+        .status-box.success {
+            border-left-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .status-box.loading {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+
+        .status-text {
+            margin: 8px 0;
+            font-size: 1em;
+        }
+
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Audio Info */
+        .audio-info {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .audio-info.show {
+            display: grid;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            color: #333;
+            font-weight: 700;
+        }
+
+        /* Stems Display */
+        .stems-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stems-grid.show {
+            display: grid;
+        }
+
+        .stem-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stem-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .stem-name {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        /* Buttons */
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        button.secondary:hover {
+            background: #e8eaf6;
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        /* Loader */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .upload-area {
+                padding: 30px;
+            }
+
+            .workflow {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎵 SongShapes</h1>
+            <div class="subtitle">Theory-Trained Audio Regeneration</div>
+            <div class="tagline">Preserve your performance. Regenerate the character.</div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Workflow Steps -->
+            <div class="workflow">
+                <div class="step active" id="step-1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Upload</div>
+                </div>
+                <div class="step" id="step-2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Analyze</div>
+                </div>
+                <div class="step" id="step-3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Separate</div>
+                </div>
+                <div class="step" id="step-4">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Export</div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="section">
+                <h2>1. Upload Your Audio</h2>
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Drop your audio here</div>
+                    <div class="upload-hint">or click to browse (WAV, MP3, FLAC - max 100MB)</div>
+                    <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a">
+                </div>
+                <div class="status-box" id="upload-status"></div>
+                <div class="progress-bar" id="progress-bar" style="display: none;">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="audio-info" id="audio-info">
+                    <div class="info-item">
+                        <div class="info-label">Duration</div>
+                        <div class="info-value" id="info-duration">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Sample Rate</div>
+                        <div class="info-value" id="info-sr">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Section -->
+            <div class="section">
+                <h2>2. Process Audio</h2>
+                <p style="margin-bottom: 20px; color: #666;">
+                    Separate your audio into stems using Harmonic-Percussive Source Separation (HPSS).
+                </p>
+                <button id="separate-btn" disabled>
+                    🎛️ Separate into Stems
+                </button>
+                <div class="status-box" id="process-status"></div>
+            </div>
+
+            <!-- Stems Section -->
+            <div class="section">
+                <h2>3. Download Stems</h2>
+                <div class="stems-grid" id="stems-grid"></div>
+                <div id="no-stems" style="text-align: center; color: #999; padding: 40px;">
+                    No stems available yet. Upload and process audio first.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            sessionId: null,
+            audioLoaded: false,
+            stemsReady: false,
+            duration: 0,
+            sampleRate: 0
+        };
+
+        // DOM Elements
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const uploadStatus = document.getElementById('upload-status');
+        const progressBar = document.getElementById('progress-bar');
+        const progressFill = document.getElementById('progress-fill');
+        const audioInfo = document.getElementById('audio-info');
+        const infoDuration = document.getElementById('info-duration');
+        const infoSr = document.getElementById('info-sr');
+        const separateBtn = document.getElementById('separate-btn');
+        const processStatus = document.getElementById('process-status');
+        const stemsGrid = document.getElementById('stems-grid');
+        const noStems = document.getElementById('no-stems');
+
+        // Workflow steps
+        const steps = [
+            document.getElementById('step-1'),
+            document.getElementById('step-2'),
+            document.getElementById('step-3'),
+            document.getElementById('step-4')
+        ];
+
+        // Helpers
+        function showStatus(el, message, type = 'info') {
+            el.textContent = message;
+            el.className = `status-box ${type}`;
+            if (type === 'loading') {
+                el.innerHTML = `<span class="loader"></span>${message}`;
+            }
+            el.style.display = 'block';
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateStep(stepIndex, state) {
+            const step = steps[stepIndex];
+            if (state === 'active') {
+                step.classList.add('active');
+                step.classList.remove('complete');
+            } else if (state === 'complete') {
+                step.classList.remove('active');
+                step.classList.add('complete');
+            } else {
+                step.classList.remove('active', 'complete');
+            }
+        }
+
+        // Upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        async function handleFileUpload(file) {
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            showStatus(uploadStatus, '⏳ Uploading...', 'loading');
+            updateStep(0, 'active');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const xhr = new XMLHttpRequest();
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressFill.style.width = percentComplete + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    progressFill.style.width = '100%';
+                    const response = JSON.parse(xhr.responseText);
+
+                    if (response.status === 'success') {
+                        state.sessionId = response.session_id;
+                        state.audioLoaded = true;
+                        state.duration = response.duration;
+                        state.sampleRate = response.sample_rate;
+
+                        // Update UI
+                        infoDuration.textContent = formatDuration(state.duration);
+                        infoSr.textContent = `${state.sampleRate} Hz`;
+                        audioInfo.classList.add('show');
+
+                        showStatus(uploadStatus, `✓ Audio loaded: ${file.name}`, 'success');
+                        updateStep(0, 'complete');
+                        updateStep(1, 'active');
+                        separateBtn.disabled = false;
+
+                        // Clear file input
+                        fileInput.value = '';
+                    } else {
+                        showStatus(uploadStatus, `✗ ${response.message}`, 'error');
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    showStatus(uploadStatus, 'Upload failed', 'error');
+                });
+
+                xhr.open('POST', '/api/upload');
+                xhr.send(formData);
+
+            } catch (error) {
+                showStatus(uploadStatus, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Stem separation
+        separateBtn.addEventListener('click', async () => {
+            if (!state.sessionId) {
+                showStatus(processStatus, 'No session found', 'error');
+                return;
+            }
+
+            separateBtn.disabled = true;
+            showStatus(processStatus, 'Separating audio into stems...', 'loading');
+            updateStep(1, 'complete');
+            updateStep(2, 'active');
+
+            try {
+                const response = await fetch('/api/separate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: state.sessionId,
+                        character_config: null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    state.stemsReady = true;
+                    showStatus(processStatus, `✓ ${result.message}`, 'success');
+                    updateStep(2, 'complete');
+                    updateStep(3, 'active');
+                    displayStems(result.stems);
+                } else {
+                    showStatus(processStatus, `✗ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(processStatus, `Error: ${error.message}`, 'error');
+            } finally {
+                separateBtn.disabled = false;
+            }
+        });
+
+        // Display stems
+        function displayStems(stems) {
+            stemsGrid.innerHTML = '';
+            noStems.style.display = 'none';
+
+            const stemIcons = {
+                'vocals': '🎤',
+                'percussion': '🥁',
+                'bass_pads': '🎹',
+                'harmonic': '🌊',
+                'percussive': '⚡',
+                'master': '🎵'
+            };
+
+            Object.entries(stems).forEach(([stemName, stemPath]) => {
+                const card = document.createElement('div');
+                card.className = 'stem-card';
+                card.innerHTML = `
+                    <div class="stem-icon">${stemIcons[stemName] || '🎵'}</div>
+                    <div class="stem-name">${stemName}</div>
+                    <button class="secondary" onclick="downloadStem('${stemName}')">
+                        ⬇️ Download
+                    </button>
+                `;
+                stemsGrid.appendChild(card);
+            });
+
+            stemsGrid.classList.add('show');
+        }
+
+        function downloadStem(stemName) {
+            if (!state.sessionId) return;
+            const url = `/api/download/${stemName}/${state.sessionId}`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.sessionId}_${stemName}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Health check
+        fetch('/api/health')
+            .then(r => r.json())
+            .then(data => console.log('✓ SongShapes ready:', data))
+            .catch(e => console.error('Server not responding:', e));
+    </script>
+</body>
+</html>
