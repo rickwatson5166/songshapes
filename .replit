@@ -5,3 +5,8 @@ modules = ["python-3.10"]
 [env]
 PYTHONUNBUFFERED = "1"
 FLASK_ENV = "production"
+REPLIT_MODE = "true"
+
+[packager]
+language = "python3"
+ignoredPaths = [".git", ".replit", "*.pyc", "__pycache__"]
