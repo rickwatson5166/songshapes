@@ -1,0 +1,7 @@
+run = "python3 app.py"
+entrypoint = "app.py"
+modules = ["python-3.10"]
+
+[env]
+PYTHONUNBUFFERED = "1"
+FLASK_ENV = "production"
