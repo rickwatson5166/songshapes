@@ -3,6 +3,8 @@
 # The chat told the model its skills live under /mnt/skills/user, /organization,
 # /private and /plugins; link those to the directory Claude Code syncs skills
 # into, <config dir>/skills/synced/<org uuid>_<account uuid or "unbound">.
+# Also link /plugin-files to <config dir>/plugins/synced/<the same name>, where
+# Claude Code syncs each plugin whole, so that a chat can name a file of a plugin.
 
 # Claude Code waits for this script before it reads the session's first
 # message, and each program the script starts adds to that wait. So when
@@ -52,4 +54,7 @@ for dir in user organization private plugins; do
 	# shellcheck disable=SC3013 # dash and bash have -ef; a shell without it runs ln
 	[ "$root/$dir" -ef "$bucket" ] || ln -sfnT -- "$bucket" "$root/$dir"
 done
+plugins="$config/plugins/synced/${org}_${account}"
+# shellcheck disable=SC3013 # as above
+[ "$root/plugin-files" -ef "$plugins" ] || ln -sfnT -- "$plugins" "$root/plugin-files"
 exit 0
