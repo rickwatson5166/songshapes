@@ -24,26 +24,6 @@
         ]
     },
     "hooks": {
-        "SessionStart": [
-            {
-                "hooks": [
-                    {
-                        "command": "~/.claude/session-start-chat-skill-paths.sh",
-                        "type": "command"
-                    }
-                ],
-                "matcher": ""
-            },
-            {
-                "hooks": [
-                    {
-                        "command": "~/.claude/session-start-chat-public-skills.sh",
-                        "type": "command"
-                    }
-                ],
-                "matcher": ""
-            }
-        ],
         "Stop": [
             {
                 "hooks": [
