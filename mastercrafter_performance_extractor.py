@@ -34,17 +34,34 @@ class PerformanceExtractor:
             f0: pitch array (Hz), shape=(n_frames,)
             voiced_flag: confidence array (True = voiced, False = unvoiced)
         """
-        # librosa.yin returns just the f0 array (confidence threshold built in)
-        f0 = librosa.yin(
+        # librosa.pyin, NOT librosa.yin.
+        #
+        # yin returns an estimate for EVERY frame -- it has no voicing
+        # detection and never returns zero. Reading its output as "0 means
+        # unvoiced" therefore marked every frame voiced, including silence and
+        # cymbal wash, which quietly broke three things downstream:
+        #
+        #   * gap_ratio came out ~0 on any input, so articulation was always
+        #     reported as "legato"
+        #   * pitch histograms were polluted with estimates taken from
+        #     unpitched frames
+        #   * over a long file the pitch range saturated toward the search
+        #     bounds, giving an identical span for completely different songs
+        #
+        # pyin returns (f0, voiced_flag, voiced_prob) with NaN where it finds
+        # no pitch, so voicing is a real measurement.
+        f0, voiced_flag, _voiced_prob = librosa.pyin(
             audio,
             fmin=fmin,
             fmax=fmax,
-            sr=self.sr,
-            trough_threshold=0.1
+            sr=self.sr
         )
 
-        # Create voiced flag based on f0 values (0 = unvoiced)
-        voiced_flag = f0 > 0
+        # Downstream code uses the "f0 > 0 means voiced" convention, so fold
+        # NaN into 0 rather than changing every consumer.
+        f0 = np.nan_to_num(np.asarray(f0, dtype=float), nan=0.0)
+        voiced_flag = np.asarray(voiced_flag, dtype=bool) & (f0 > 0)
+        f0[~voiced_flag] = 0.0
 
         self.performance['f0'] = f0
         self.performance['voiced_flag'] = voiced_flag
