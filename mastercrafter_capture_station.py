@@ -95,13 +95,18 @@ class HPSSStemSeparator:
         percussive = librosa.istft(P)
 
         # Further split harmonic into frequency bands
-        # Vocals: 80-3000 Hz (main formants)
-        # Bass: 20-200 Hz (fundamental)
-        # Other: 3000-8000 Hz (overtones, synths)
-
-        H_vocals, H_other = self._split_harmonic_by_freq(H, sr=self.sr)
-        H_bass, H_vocals = self._split_harmonic_by_freq(H_vocals, sr=self.sr,
-                                                        low_freq=20, high_freq=200)
+        # Bass:   20-200 Hz   (fundamentals)
+        # Vocals: 200-3000 Hz (main formants)
+        # Other:  the remainder (sub-20 Hz rumble, 3 kHz+ overtones)
+        #
+        # Take bass off the full harmonic spectrum FIRST. Carving it out of an
+        # already 80 Hz high-passed band limited the bass stem to 80-200 Hz and
+        # sent everything below 80 Hz to "other" -- losing the fundamentals the
+        # stem exists for (low E is ~41 Hz, kick ~50-60 Hz).
+        H_bass, H_rest = self._split_harmonic_by_freq(H, sr=self.sr,
+                                                      low_freq=20, high_freq=200)
+        H_vocals, H_other = self._split_harmonic_by_freq(H_rest, sr=self.sr,
+                                                         low_freq=200, high_freq=3000)
 
         vocals = librosa.istft(H_vocals)
         bass = librosa.istft(H_bass)
@@ -126,12 +131,12 @@ class HPSSStemSeparator:
 
         mask_in_range = (freqs >= low_freq) & (freqs <= high_freq)
 
-        # Create 2D mask that matches D shape
-        mask_2d = mask_in_range[:, np.newaxis]
-
-        D_in = D.copy()
-        D_in[~mask_2d] = 0
-
+        # Multiply by the mask rather than boolean-indexing with it. A
+        # (n_freqs, 1) boolean mask cannot index a (n_freqs, n_frames) array --
+        # numpy matches boolean axes by size, so axis 1 (1 vs n_frames) raises
+        # IndexError. Broadcasting the column across frames zeroes whole
+        # frequency rows, which is what the split intends.
+        D_in = D * mask_in_range[:, np.newaxis]
         D_out = D - D_in
 
         return D_in, D_out
