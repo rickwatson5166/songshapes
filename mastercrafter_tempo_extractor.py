@@ -100,11 +100,28 @@ class TempoExtractor:
                 'error': 'Invalid beat interval'
             }
 
-        # Step 5: Quantize to nearest sensible tempo (round to 5 BPM)
-        tempo_bpm_quantized = round(tempo_bpm / 5) * 5
+        # Step 5: Fold octave errors into a musical range.
+        #
+        # The clustered interval above is the MOST COMMON gap between onsets,
+        # which on real music is usually a subdivision of the beat rather than
+        # the beat itself. Eighth notes at 108 BPM cluster at ~0.28s, giving a
+        # raw estimate near 215 -- roughly double the real tempo. Previously a
+        # clamp to 40-200 absorbed that into a flat "200", which looked like a
+        # measurement instead of an overflow.
+        #
+        # Halving or doubling until the estimate lands in a plausible band
+        # corrects the common case. Note this cannot resolve the genuine
+        # ambiguity between 60 BPM in quarter notes and 120 BPM in half notes
+        # -- the onset spacing is identical -- so an estimate already inside
+        # the band is left alone rather than pulled toward a preferred tempo.
+        tempo_bpm_folded, octave_factor = self._fold_tempo_octave(tempo_bpm)
 
-        # Step 6: Clamp to reasonable range (40-200 BPM for most music)
-        tempo_bpm_final = np.clip(tempo_bpm_quantized, 40, 200)
+        # Step 6: Quantize to nearest sensible tempo (round to 5 BPM)
+        tempo_bpm_quantized = round(tempo_bpm_folded / 5) * 5
+
+        # Final safety bound, far wider than the musical band so it no longer
+        # masks a bad estimate.
+        tempo_bpm_final = np.clip(tempo_bpm_quantized, 30, 300)
 
         # Step 7: Infer time signature (4/4 is most common)
         # Could be refined by analyzing accent patterns, but 4/4 is safest default
@@ -124,9 +141,48 @@ class TempoExtractor:
             'beat_interval_seconds': float(beat_interval),
             'confidence': float(confidence),
             'raw_tempo_bpm': float(tempo_bpm),
+            # Records whether the raw estimate was halved or doubled, so an
+            # octave correction is visible rather than silent.
+            'tempo_octave_factor': float(octave_factor),
             'interval_std': float(interval_std),
             'interval_mean': float(interval_mean)
         }
+
+    @staticmethod
+    def _fold_tempo_octave(tempo_bpm, min_bpm=60.0, max_bpm=180.0):
+        """
+        Halve or double a tempo estimate until it lands within [min_bpm,
+        max_bpm].
+
+        Returns (folded_bpm, factor) where factor is the power of two applied,
+        so a caller can tell a corrected estimate from an untouched one.
+
+        An estimate already inside the band is returned unchanged. Only clear
+        octave errors -- a subdivision mistaken for the beat, or vice versa --
+        are corrected.
+        """
+        if not np.isfinite(tempo_bpm) or tempo_bpm <= 0:
+            return 120.0, 1.0
+
+        folded = float(tempo_bpm)
+        factor = 1.0
+
+        # Guard the loops: 2^6 covers any plausible subdivision error.
+        for _ in range(6):
+            if folded > max_bpm:
+                folded /= 2.0
+                factor /= 2.0
+            else:
+                break
+
+        for _ in range(6):
+            if folded < min_bpm:
+                folded *= 2.0
+                factor *= 2.0
+            else:
+                break
+
+        return folded, factor
 
     def extract_tempo_verbose(self, onset_frames, sr=None, hop_length=None, verbosity=1):
         """Extract tempo with progress messages"""
