@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+# Job working directory (audio, analysis, rendered stems)
+data/
+
+# Local virtualenvs
+.venv/
+venv/
+
+*.log
+.DS_Store
