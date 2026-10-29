@@ -1,8 +1,21 @@
 __pycache__/
 *.py[cod]
 
-# Job working directory (audio, analysis, rendered stems)
-data/
+# Job working directory (audio, analysis, rendered stems) is scratch.
+# Ignored by name rather than ignoring all of data/, because git cannot
+# re-include a path whose parent directory is excluded -- a "!data/references"
+# negation under a blanket "data/" rule silently does nothing.
+data/jobs/
+
+# The reference corpus is NOT scratch. Approvals, rights bases and the
+# profiles derived from them are durable project data and belong in history --
+# who approved what, on what basis, and when. The profiles are small JSON and
+# carry no audio, so there is nothing here that shouldn't be versioned.
+
+# Retained audio is the exception: --retain-audio copies a master in, and
+# masters do not belong in the repo.
+data/references/**/source.wav
+*.wav
 
 # Local virtualenvs
 .venv/

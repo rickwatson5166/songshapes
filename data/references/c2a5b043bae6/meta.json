@@ -1,0 +1,24 @@
+{
+  "ref_id": "c2a5b043bae6",
+  "title": "Walk Away",
+  "source_filename": "Walk_Away.wav",
+  "source_sha256": "0bfe6b9046d245831a958dd0c331f1f5f167117d9f888df51a15d0c0d2ac4003",
+  "performers": [
+    "Rick Watson (guitar)"
+  ],
+  "writers": [
+    "Rick Watson"
+  ],
+  "band": null,
+  "year": null,
+  "rights_basis": "own-composition-other-performers",
+  "rights_notes": "Wrote all songs; played guitar on all. Other instruments by other performers.",
+  "notes": null,
+  "approved": true,
+  "approved_by": "Rick Watson",
+  "approved_at": 1793312553.8692472,
+  "retain_audio": false,
+  "created_at": 1793312341.096739,
+  "sr": 44100,
+  "duration_seconds": 229.82965986394558
+}
