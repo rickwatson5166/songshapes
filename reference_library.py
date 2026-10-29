@@ -52,6 +52,88 @@ RIGHTS_BASES = (
     "unspecified",
 )
 
+# What kind of recording a profile was taken from. This decides which fields
+# mean anything: the same extraction run on a finished master and on a solo
+# take produce the same field names but not the same trustworthiness.
+SOURCE_TYPES = (
+    "solo-performance",      # one instrument or voice alone, as played
+    "isolated-track",        # a single track lifted from a multitrack
+    "separated-stem",        # output of stem separation
+    "full-mix-unmastered",   # rough or pre-master mix
+    "full-mix-mastered",     # finished, limited master
+    "unspecified",
+)
+
+_MIXED_SOURCES = ("separated-stem", "full-mix-unmastered", "full-mix-mastered",
+                  "unspecified")
+_MASTERED_SOURCES = ("full-mix-mastered",)
+
+# Why a field cannot be trusted, by cause. Kept as prose because the reason is
+# the useful part -- a bare "unreliable" flag tells a future reader nothing.
+_WHY = {
+    "mastered": "mastering limits dynamics before analysis, so this measures "
+                "the master rather than the performance",
+    "mixed": "onsets and envelope come from every instrument at once, so this "
+             "describes the mix rather than one player",
+    "polyphonic": "pitch tracking cannot follow a single line through "
+                  "simultaneous notes, so this is not a melodic measurement",
+    "not-measured": "not measured: the extractor hardcodes this value",
+}
+
+# Fields whose meaning depends on dynamics surviving to the analyzer.
+_DYNAMICS_FIELDS = ("expression", "dynamics")
+# Fields that need one player in isolation to mean anything.
+_ISOLATION_FIELDS = ("articulation", "gap_ratio", "timing", "swing_factor",
+                     "ioi")
+# Fields that need a monophonic line.
+_MONOPHONIC_FIELDS = ("interval_weights", "pitch_range_semitones")
+# Fields the extractor never actually measures.
+_CONSTANT_FIELDS = ("time_signature",)
+
+
+def unreliable_fields(source_type, monophonic=None):
+    """
+    Return {field: reason} for fields that cannot be trusted from this kind of
+    source.
+
+    Reliability is a property of the recording, not of the code, so it is
+    derived here rather than stored -- re-deriving it keeps old entries honest
+    when the rules improve.
+    """
+    source_type = source_type or "unspecified"
+    out = {}
+
+    for field in _CONSTANT_FIELDS:
+        out[field] = _WHY["not-measured"]
+
+    if source_type in _MASTERED_SOURCES:
+        for field in _DYNAMICS_FIELDS:
+            out[field] = _WHY["mastered"]
+
+    if source_type in _MIXED_SOURCES:
+        for field in _ISOLATION_FIELDS:
+            out[field] = _WHY["mixed"]
+
+    # A strummed guitar on its own track is still polyphonic, so isolation
+    # alone does not make a pitch line trustworthy -- it has to be stated.
+    if monophonic is not True:
+        for field in _MONOPHONIC_FIELDS:
+            out[field] = _WHY["polyphonic"]
+
+    return out
+
+
+def reliable_profile(meta, profile):
+    """
+    Split a profile into what this source can support and what it cannot.
+
+    Returns (trusted, withheld) where withheld maps field -> reason.
+    """
+    withheld = unreliable_fields(meta.get("source_type"),
+                                 meta.get("monophonic"))
+    trusted = {k: v for k, v in (profile or {}).items() if k not in withheld}
+    return trusted, {k: v for k, v in withheld.items() if k in (profile or {})}
+
 # Keys that must never appear anywhere in a profile. These are the fields that
 # would make a profile a reconstruction rather than a description.
 _FORBIDDEN_PROFILE_KEYS = {
@@ -357,17 +439,26 @@ def _sha256(path, chunk=1 << 20):
 def create_reference(audio_path, title=None, performers=None, writers=None,
                      band=None, year=None, rights_basis="unspecified",
                      rights_notes=None, notes=None, retain_audio=False,
-                     ref_id=None):
+                     ref_id=None, source_type="unspecified", monophonic=None):
     """
     Register a reference and extract its profile.
 
     The entry is unapproved on creation regardless of rights_basis -- approval
     is a separate, deliberate act (see `approve`).
+
+    source_type and monophonic decide which profile fields are meaningful;
+    see `unreliable_fields`. Both default to the cautious reading, so an entry
+    added without them contributes only what any source can support.
     """
     if rights_basis not in RIGHTS_BASES:
         raise ValueError(
             f"unknown rights_basis {rights_basis!r}; expected one of "
             f"{', '.join(RIGHTS_BASES)}"
+        )
+    if source_type not in SOURCE_TYPES:
+        raise ValueError(
+            f"unknown source_type {source_type!r}; expected one of "
+            f"{', '.join(SOURCE_TYPES)}"
         )
     if not os.path.exists(audio_path):
         raise FileNotFoundError(audio_path)
@@ -388,6 +479,8 @@ def create_reference(audio_path, title=None, performers=None, writers=None,
         "rights_basis": rights_basis,
         "rights_notes": rights_notes,
         "notes": notes,
+        "source_type": source_type,
+        "monophonic": monophonic,
         "approved": False,
         "approved_by": None,
         "approved_at": None,
@@ -496,6 +589,28 @@ def approve(ref_id, approved_by, rights_basis=None, rights_notes=None):
     return meta
 
 
+def set_source(ref_id, source_type, monophonic=None):
+    """
+    Reclassify what kind of recording an entry came from.
+
+    Separate from approval: deciding a file is a mastered mix rather than a
+    solo take changes which fields mean anything, but says nothing about
+    whether its use was cleared.
+    """
+    if source_type not in SOURCE_TYPES:
+        raise ValueError(
+            f"unknown source_type {source_type!r}; expected one of "
+            f"{', '.join(SOURCE_TYPES)}"
+        )
+    meta = store.read_json(ref_path(ref_id, "meta.json"))
+    if meta is None:
+        raise KeyError(f"no such reference: {ref_id}")
+    meta["source_type"] = source_type
+    meta["monophonic"] = monophonic
+    store.write_json(ref_path(ref_id, "meta.json"), meta)
+    return meta
+
+
 def revoke(ref_id, reason=None):
     """
     Withdraw approval. The entry stays for the audit trail but stops
@@ -548,54 +663,88 @@ def style_target(ref_ids=None):
                     "their built-in defaults",
         }
 
-    profiles = [e["profile"] for e in entries]
-    blended = {
-        "mode": _modal([p.get("mode") for p in profiles]),
-        "time_signature": _modal([p.get("time_signature") for p in profiles]),
-        "articulation": _modal([p.get("articulation") for p in profiles]),
-        "timing": _modal([p.get("timing") for p in profiles]),
-        "tempo_bpm": _mean([p.get("tempo_bpm") for p in profiles]),
-        "expression": _mean([p.get("expression") for p in profiles]),
-        "swing_factor": _mean([p.get("swing_factor") for p in profiles]),
-        "gap_ratio": _mean([p.get("gap_ratio") for p in profiles]),
-        "harmonic_ratio": _mean([p.get("harmonic_ratio") for p in profiles]),
-        "onset_density_per_sec": _mean(
-            [p.get("onset_density_per_sec") for p in profiles]),
-        "pitch_range_semitones": _mean(
-            [p.get("pitch_range_semitones") for p in profiles]),
-        "scale_degree_weights": {
-            "bins": _mean_bins(profiles, "scale_degree_weights", 12),
-            "labels": list(range(12)),
-        },
-        "interval_weights": {
-            "bins": _mean_bins(profiles, "interval_weights", 25),
-            "span_semitones": 12,
-        },
-        "chord_root_motion_weights": {
-            "bins": _mean_bins(profiles, "chord_root_motion_weights", 12),
-        },
-        "chord_quality_weights": _mean_dicts(
-            [p.get("chord_quality_weights") for p in profiles]),
-        "ioi": {
-            "cv": _mean([(p.get("ioi") or {}).get("cv") for p in profiles]),
-            "ratio_bins": _mean_bins(profiles, "ioi", 8, key="ratio_bins"),
-        },
-        "dynamics": {
-            field: _mean([(p.get("dynamics") or {}).get(field) for p in profiles])
-            for field in ("mean", "std", "range", "crest")
-        },
-    }
+    blended, withheld, contributors = {}, {}, {}
+
+    def put(field, builder):
+        """
+        Blend `field` across only those sources that can support it.
+
+        Averaging a field over sources where it is a known artifact would
+        launder the artifact into the target -- three mastered mixes all
+        reporting "legato" because their envelopes never drop is not evidence
+        of legato playing. When no source supports a field it is withheld with
+        the reason, which is more useful to a generator than a confident
+        wrong number.
+        """
+        supporting = [e["profile"] for e in entries
+                      if field not in unreliable_fields(e.get("source_type"),
+                                                        e.get("monophonic"))]
+        if not supporting:
+            for entry in entries:
+                reason = unreliable_fields(
+                    entry.get("source_type"), entry.get("monophonic")
+                ).get(field)
+                if reason:
+                    withheld[field] = reason
+                    break
+            return
+        value = builder(supporting)
+        if value is not None:
+            blended[field] = value
+            contributors[field] = len(supporting)
+
+    put("mode", lambda ps: _modal([p.get("mode") for p in ps]))
+    put("time_signature", lambda ps: _modal([p.get("time_signature") for p in ps]))
+    put("articulation", lambda ps: _modal([p.get("articulation") for p in ps]))
+    put("timing", lambda ps: _modal([p.get("timing") for p in ps]))
+    put("tempo_bpm", lambda ps: _mean([p.get("tempo_bpm") for p in ps]))
+    put("expression", lambda ps: _mean([p.get("expression") for p in ps]))
+    put("swing_factor", lambda ps: _mean([p.get("swing_factor") for p in ps]))
+    put("gap_ratio", lambda ps: _mean([p.get("gap_ratio") for p in ps]))
+    put("harmonic_ratio", lambda ps: _mean([p.get("harmonic_ratio") for p in ps]))
+    put("onset_density_per_sec",
+        lambda ps: _mean([p.get("onset_density_per_sec") for p in ps]))
+    put("pitch_range_semitones",
+        lambda ps: _mean([p.get("pitch_range_semitones") for p in ps]))
+    put("scale_degree_weights", lambda ps: {
+        "bins": _mean_bins(ps, "scale_degree_weights", 12),
+        "labels": list(range(12)),
+    })
+    put("interval_weights", lambda ps: {
+        "bins": _mean_bins(ps, "interval_weights", 25),
+        "span_semitones": 12,
+    })
+    put("chord_root_motion_weights", lambda ps: {
+        "bins": _mean_bins(ps, "chord_root_motion_weights", 12),
+    })
+    put("chord_quality_weights",
+        lambda ps: _mean_dicts([p.get("chord_quality_weights") for p in ps]))
+    put("ioi", lambda ps: {
+        "cv": _mean([(p.get("ioi") or {}).get("cv") for p in ps]),
+        "ratio_bins": _mean_bins(ps, "ioi", 8, key="ratio_bins"),
+    })
+    put("dynamics", lambda ps: {
+        field: _mean([(p.get("dynamics") or {}).get(field) for p in ps])
+        for field in ("mean", "std", "range", "crest")
+    })
 
     validate_profile(blended)
     return {
         "sources": [
             {"ref_id": e["ref_id"], "title": e.get("title"),
              "rights_basis": e.get("rights_basis"),
-             "approved_by": e.get("approved_by")}
+             "approved_by": e.get("approved_by"),
+             "source_type": e.get("source_type"),
+             "monophonic": e.get("monophonic")}
             for e in entries
         ],
         "source_count": len(entries),
         "profile": blended,
+        # Fields no approved source can support, and why. A generator should
+        # fall back to its own defaults for these rather than guessing.
+        "withheld": withheld,
+        # How many sources backed each blended field.
+        "blended_from": contributors,
     }
 
 

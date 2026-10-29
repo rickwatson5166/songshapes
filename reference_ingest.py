@@ -79,6 +79,8 @@ def ingest(paths, args):
                 rights_notes=args.rights_notes,
                 notes=args.notes,
                 retain_audio=args.retain_audio,
+                source_type=args.source_type,
+                monophonic=(True if args.monophonic else None),
             )
         except Exception as exc:
             print(f"    failed: {exc}")
@@ -154,6 +156,15 @@ def main(argv=None):
     parser.add_argument("--band", help="band name")
     parser.add_argument("--year", help="year recorded")
 
+    parser.add_argument("--source-type", default="unspecified",
+                        choices=lib.SOURCE_TYPES,
+                        help="what kind of recording this is; decides which "
+                             "profile fields are meaningful")
+    parser.add_argument("--monophonic", action="store_true",
+                        help="the source plays one note at a time (a single "
+                             "line, not chords); required before melodic "
+                             "interval features are trusted")
+
     parser.add_argument("--rights", default="unspecified",
                         choices=lib.RIGHTS_BASES,
                         help="basis on which this may be used")
@@ -175,6 +186,9 @@ def main(argv=None):
                         help="withdraw approval")
     parser.add_argument("--style-target", action="store_true",
                         help="show the blended target from approved entries")
+    parser.add_argument("--set-source", metavar="REF_ID",
+                        help="reclassify an existing reference; use with "
+                             "--source-type and optionally --monophonic")
 
     args = parser.parse_args(argv)
 
@@ -203,6 +217,20 @@ def main(argv=None):
     if args.revoke:
         meta = lib.revoke(args.revoke, reason=args.notes)
         print(f"approval withdrawn for {meta['ref_id']} ({meta['title']})")
+        return 0
+
+    if args.set_source:
+        try:
+            meta = lib.set_source(args.set_source,
+                                  source_type=args.source_type,
+                                  monophonic=(True if args.monophonic else None))
+        except (ValueError, KeyError) as exc:
+            print(f"could not reclassify: {exc}", file=sys.stderr)
+            return 1
+        held = lib.unreliable_fields(meta["source_type"], meta.get("monophonic"))
+        print(f"{meta['ref_id']} ({meta['title']}) -> {meta['source_type']}"
+              f"{', monophonic' if meta.get('monophonic') else ''}")
+        print(f"  {len(held)} field(s) now withheld: {', '.join(sorted(held))}")
         return 0
 
     if not args.target:

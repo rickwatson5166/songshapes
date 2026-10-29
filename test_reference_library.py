@@ -207,6 +207,124 @@ def test_profile_contents():
           and len(meta["source_sha256"]) == 64)
 
 
+def test_source_reliability():
+    print("\nsource-type reliability")
+
+    mastered = lib.unreliable_fields("full-mix-mastered")
+    check("mastered mix withholds expression", "expression" in mastered)
+    check("mastered mix withholds dynamics", "dynamics" in mastered)
+    check("mastered mix withholds articulation", "articulation" in mastered)
+    check("mastered mix withholds timing", "timing" in mastered)
+    check("mastered mix keeps harmonic fields",
+          "scale_degree_weights" not in mastered
+          and "chord_quality_weights" not in mastered)
+    check("mastered mix keeps tempo", "tempo_bpm" not in mastered)
+
+    unmastered = lib.unreliable_fields("full-mix-unmastered")
+    check("unmastered mix keeps dynamics", "dynamics" not in unmastered)
+    check("unmastered mix still withholds articulation",
+          "articulation" in unmastered)
+
+    solo_poly = lib.unreliable_fields("solo-performance")
+    check("solo take keeps articulation", "articulation" not in solo_poly)
+    check("solo take still withholds melodic intervals without a "
+          "monophonic claim", "interval_weights" in solo_poly)
+
+    solo_mono = lib.unreliable_fields("solo-performance", monophonic=True)
+    check("monophonic solo take keeps melodic intervals",
+          "interval_weights" not in solo_mono)
+    check("monophonic solo take withholds almost nothing",
+          set(solo_mono) == {"time_signature"},
+          f"withheld {sorted(solo_mono)}")
+
+    check("time signature is always withheld as unmeasured",
+          all("time_signature" in lib.unreliable_fields(st)
+              for st in lib.SOURCE_TYPES))
+
+    check("every reason is prose, not a bare flag",
+          all(isinstance(v, str) and len(v) > 20 for v in mastered.values()))
+
+    try:
+        lib.unreliable_fields("made-up-type")
+        check("unknown source types fall back to cautious", True)
+    except Exception as exc:
+        check("unknown source types fall back to cautious", False, str(exc))
+
+
+def test_blend_excludes_artifacts():
+    print("\nblend excludes unsupported fields")
+    _clear_refs()
+
+    meta = lib.create_reference(
+        make_audio(os.path.join(_TMP, "m.wav"), [220, 262, 330, 294]),
+        title="mastered", rights_basis="own-composition-own-recording",
+        source_type="full-mix-mastered")
+    check("source type is recorded on the entry",
+          meta["source_type"] == "full-mix-mastered")
+    lib.approve(meta["ref_id"], approved_by="Rick Watson")
+
+    target = lib.style_target()
+    profile, held = target["profile"], target["withheld"]
+
+    check("articulation is not blended from a mastered mix",
+          "articulation" not in profile)
+    check("expression is not blended from a mastered mix",
+          "expression" not in profile)
+    check("withheld names articulation with a reason",
+          "articulation" in held and len(held["articulation"]) > 20)
+    check("harmonic content still blends",
+          "scale_degree_weights" in profile)
+    check("tempo still blends", "tempo_bpm" in profile)
+    check("blended_from counts the backing sources",
+          target["blended_from"].get("tempo_bpm") == 1)
+    check("sources carry their source type",
+          target["sources"][0]["source_type"] == "full-mix-mastered")
+
+    # A solo monophonic take should restore the withheld fields.
+    solo = lib.create_reference(
+        make_audio(os.path.join(_TMP, "s.wav"), [220, 247, 262, 294, 330]),
+        title="solo take", rights_basis="own-composition-own-recording",
+        source_type="solo-performance", monophonic=True)
+    lib.approve(solo["ref_id"], approved_by="Rick Watson")
+
+    target = lib.style_target()
+    check("a solo take restores articulation to the blend",
+          "articulation" in target["profile"])
+    check("articulation now blends from the solo source only",
+          target["blended_from"].get("articulation") == 1,
+          f"got {target['blended_from'].get('articulation')}")
+    check("melodic intervals restored by the monophonic source",
+          "interval_weights" in target["profile"])
+    check("time signature stays withheld regardless",
+          "time_signature" in target["withheld"])
+    check("blend is still non-reconstructive",
+          lib.validate_profile(target["profile"]) is True)
+
+
+def test_set_source():
+    print("\nreclassification")
+    _clear_refs()
+    meta = lib.create_reference(
+        make_audio(os.path.join(_TMP, "r.wav"), [220, 262, 330]),
+        title="reclassify me", rights_basis="own-composition-own-recording")
+    check("defaults to unspecified", meta["source_type"] == "unspecified")
+
+    updated = lib.set_source(meta["ref_id"], "solo-performance",
+                             monophonic=True)
+    check("reclassification sticks", updated["source_type"] == "solo-performance")
+    check("reclassification records the monophonic claim",
+          updated["monophonic"] is True)
+
+    try:
+        lib.set_source(meta["ref_id"], "nonsense")
+        check("rejects an unknown source type", False, "accepted")
+    except ValueError:
+        check("rejects an unknown source type", True)
+
+    check("reclassifying does not approve anything",
+          lib.load_reference(meta["ref_id"])["approved"] is False)
+
+
 def _clear_refs():
     import shutil
     if os.path.isdir(lib.REFS_ROOT):
@@ -221,6 +339,9 @@ def main():
     test_rights_gate()
     test_style_target_respects_approval()
     test_profile_contents()
+    test_source_reliability()
+    test_blend_excludes_artifacts()
+    test_set_source()
 
     print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
     if FAILED:

@@ -1,5 +1,5 @@
 {
-  "ref_id": "aefb560705cf",
+  "ref_id": "2c157b47fef2",
   "title": "Tripping Blind",
   "source_filename": "LANDR-TRIPPING_BLIND-Balanced-Medium.wav",
   "source_sha256": "d7ccbeebf2988a7593056e58d4c5b7ba0ddf6a4826fadad9750fe299ad203f18",
@@ -14,11 +14,13 @@
   "rights_basis": "own-composition-other-performers",
   "rights_notes": "Wrote all songs; played guitar on all. Other instruments by other performers.",
   "notes": null,
+  "source_type": "full-mix-mastered",
+  "monophonic": null,
   "approved": true,
   "approved_by": "Rick Watson",
-  "approved_at": 1793312553.8678868,
+  "approved_at": 1793315368.9063916,
   "retain_audio": false,
-  "created_at": 1793312505.243121,
+  "created_at": 1793315325.0852017,
   "sr": 44100,
   "duration_seconds": 276.66430839002265
 }

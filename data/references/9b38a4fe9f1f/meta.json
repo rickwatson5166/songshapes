@@ -1,5 +1,5 @@
 {
-  "ref_id": "173e8e843675",
+  "ref_id": "9b38a4fe9f1f",
   "title": "SLAVE",
   "source_filename": "SLAVE.wav",
   "source_sha256": "d5d3b5b1d8fcb52d0c6feaff67b8da3741e5d4b38ad46311c10b1a181e9e40b0",
@@ -14,11 +14,13 @@
   "rights_basis": "own-composition-other-performers",
   "rights_notes": "Wrote all songs; played guitar on all. Other instruments by other performers.",
   "notes": null,
+  "source_type": "full-mix-mastered",
+  "monophonic": null,
   "approved": true,
   "approved_by": "Rick Watson",
-  "approved_at": 1793312553.8696704,
+  "approved_at": 1793315286.790349,
   "retain_audio": false,
-  "created_at": 1793312299.6142786,
+  "created_at": 1793315231.9168031,
   "sr": 44100,
   "duration_seconds": 338.7080272108844
 }
